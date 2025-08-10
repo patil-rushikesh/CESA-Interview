@@ -1,0 +1,36 @@
+
+import { type NextRequest, NextResponse } from "next/server"
+import  { getDatabase } from "../../../lib/mongodb"
+
+
+export async function POST(req: NextRequest) {
+    try {
+        const body = await req.json();
+        const db = await getDatabase();
+        const collection = db.collection("webSubmissions");
+
+        // Check for existing PRN
+        const existing = await collection.findOne({
+            $or: [
+                { prn: body.prn },
+                { prnNumber: body.prn },
+                { prn: body.prnNumber },
+                { prnNumber: body.prnNumber }
+            ]
+        });
+        if (existing) {
+            return NextResponse.json({ status: 409, error: "Submission already exists for this PRN." });
+        }
+
+        const now = new Date();
+        const result = await collection.insertOne({
+            ...body,
+            submittedAt: now,
+            submittedAtTime: now.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
+        });
+        return NextResponse.json({ status: 200, insertedId: result.insertedId });
+    } catch (error) {
+        console.error("Error saving submission:", error);
+        return NextResponse.json({ status: 500, error: "Failed to save submission" });
+    }
+}
