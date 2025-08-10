@@ -281,16 +281,6 @@ export default function CESARecruitmentDashboard() {
                 "Login"
               )}
             </Button>
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                <strong>Demo Credentials:</strong>
-                <br />
-                Admin: admin / admin123
-                <br />
-                Panel: webmaster / panel123
-              </AlertDescription>
-            </Alert>
           </CardContent>
         </Card>
       </div>
