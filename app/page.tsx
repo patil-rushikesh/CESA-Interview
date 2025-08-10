@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Textarea } from "@/components/ui/textarea"
 import { AlertCircle, Users, FileText, BarChart3, LogOut, Eye, Edit, Search, Download, Loader2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { DialogFooter } from "@/components/ui/dialog"
 
 // Types
 interface Student {
@@ -101,6 +102,15 @@ export default function CESARecruitmentDashboard() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Change password states
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false)
+  const [oldPassword, setOldPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [changePasswordLoading, setChangePasswordLoading] = useState(false)
+  const [changePasswordError, setChangePasswordError] = useState<string | null>(null)
+  const [changePasswordSuccess, setChangePasswordSuccess] = useState<string | null>(null)
 
   // Fetch data functions
   const fetchStudents = async () => {
@@ -351,6 +361,46 @@ export default function CESARecruitmentDashboard() {
     }
   }
 
+  // Handle password change
+  const handleChangePassword = async () => {
+    setChangePasswordError(null)
+    setChangePasswordSuccess(null)
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      setChangePasswordError("All fields are required.")
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setChangePasswordError("New passwords do not match.")
+      return
+    }
+    setChangePasswordLoading(true)
+    try {
+      const response = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: currentUser?.username,
+          oldPassword,
+          newPassword,
+        }),
+      })
+      const data = await response.json()
+      if (response.ok && data.success) {
+        setChangePasswordSuccess("Password changed successfully.")
+        setOldPassword("")
+        setNewPassword("")
+        setConfirmPassword("")
+        setTimeout(() => setIsChangePasswordOpen(false), 1500)
+      } else {
+        setChangePasswordError(data.error || "Failed to change password.")
+      }
+    } catch (err) {
+      setChangePasswordError("Failed to change password.")
+    } finally {
+      setChangePasswordLoading(false)
+    }
+  }
+
   if (!currentUser) {
     return <LoginForm />
   }
@@ -367,6 +417,13 @@ export default function CESARecruitmentDashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">Welcome, {currentUser.username}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsChangePasswordOpen(true)}
+              >
+                Change Password
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -856,7 +913,6 @@ export default function CESARecruitmentDashboard() {
                 />
               </div>
 
-
               <div className="flex justify-between items-center pt-4 border-t">
                 <div>
                   <span className="text-sm text-gray-600">Weighted Score: </span>
@@ -880,6 +936,77 @@ export default function CESARecruitmentDashboard() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Password Dialog */}
+      <Dialog open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+            <DialogDescription>
+              Update your account password.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {changePasswordError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{changePasswordError}</AlertDescription>
+              </Alert>
+            )}
+            {changePasswordSuccess && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{changePasswordSuccess}</AlertDescription>
+              </Alert>
+            )}
+            <div>
+              <Label htmlFor="old-password">Current Password</Label>
+              <Input
+                id="old-password"
+                type="password"
+                value={oldPassword}
+                onChange={e => setOldPassword(e.target.value)}
+                autoComplete="current-password"
+              />
+            </div>
+            <div>
+              <Label htmlFor="new-password">New Password</Label>
+              <Input
+                id="new-password"
+                type="password"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                autoComplete="new-password"
+              />
+            </div>
+            <div>
+              <Label htmlFor="confirm-password">Confirm New Password</Label>
+              <Input
+                id="confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={handleChangePassword}
+              disabled={changePasswordLoading}
+            >
+              {changePasswordLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Changing...
+                </>
+              ) : (
+                "Change Password"
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
