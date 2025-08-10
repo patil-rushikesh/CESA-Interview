@@ -65,3 +65,23 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Failed to fetch students" }, { status: 500 })
   }
 }
+
+export async function POST(request: Request) {
+  try {
+    const db = await getDatabase()
+    const studentsCollection = db.collection<Student>("students")
+    const body = await request.json()
+    // Basic validation (add more as needed)
+    if (!body.firstName || !body.lastName || !body.prnNumber) {
+      return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 })
+    }
+    // Insert student
+    const result = await studentsCollection.insertOne({
+      ...body,
+      submissionTime: new Date().toISOString(),
+    })
+    return NextResponse.json({ success: true, id: result.insertedId })
+  } catch (error) {
+    return NextResponse.json({ success: false, error: "Failed to add student" }, { status: 500 })
+  }
+}

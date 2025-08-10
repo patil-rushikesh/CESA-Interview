@@ -112,6 +112,34 @@ export default function CESARecruitmentDashboard() {
   const [changePasswordError, setChangePasswordError] = useState<string | null>(null)
   const [changePasswordSuccess, setChangePasswordSuccess] = useState<string | null>(null)
 
+  // Add Student dialog state
+  const [isAddStudentOpen, setIsAddStudentOpen] = useState(false)
+  const [addStudentLoading, setAddStudentLoading] = useState(false)
+  const [addStudentError, setAddStudentError] = useState<string | null>(null)
+  const [addStudentSuccess, setAddStudentSuccess] = useState<string | null>(null)
+  const [newStudent, setNewStudent] = useState({
+    firstName: "",
+    lastName: "",
+    division: "",
+    prnNumber: "",
+    whatsappNumber: "",
+    email: "",
+    fyCgpa: "",
+    fyAttendance: "",
+    teamsApplied: [] as string[],
+    accomplishment: "",
+    teamInfluence: "",
+    submissionTime: "",
+    panelAssignments: [],
+  })
+
+  // Edit Marking Criteria dialog state
+  const [editTeam, setEditTeam] = useState<Team | null>(null)
+  const [editCriteria, setEditCriteria] = useState<any>(null)
+  const [editCriteriaLoading, setEditCriteriaLoading] = useState(false)
+  const [editCriteriaError, setEditCriteriaError] = useState<string | null>(null)
+  const [editCriteriaSuccess, setEditCriteriaSuccess] = useState<string | null>(null)
+
   // Fetch data functions
   const fetchStudents = async () => {
     try {
@@ -401,6 +429,86 @@ export default function CESARecruitmentDashboard() {
     }
   }
 
+  // Add Student logic
+  const handleAddStudent = async () => {
+    setAddStudentError(null)
+    setAddStudentSuccess(null)
+    setAddStudentLoading(true)
+    // Limit to max 3 teams
+    if (newStudent.teamsApplied.length > 3) {
+      setAddStudentError("You can apply for a maximum of 3 teams.")
+      setAddStudentLoading(false)
+      return
+    }
+    try {
+      const response = await fetch("/api/students", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newStudent),
+      })
+      const data = await response.json()
+      if (response.ok && data.success) {
+        setAddStudentSuccess("Student added successfully.")
+        setNewStudent({
+          firstName: "",
+          lastName: "",
+          division: "",
+          prnNumber: "",
+          whatsappNumber: "",
+          email: "",
+          fyCgpa: "",
+          fyAttendance: "",
+          teamsApplied: [],
+          accomplishment: "",
+          teamInfluence: "",
+          submissionTime: "",
+          panelAssignments: [],
+        })
+        fetchStudents()
+        setTimeout(() => setIsAddStudentOpen(false), 1200)
+      } else {
+        setAddStudentError(data.error || "Failed to add student.")
+      }
+    } catch {
+      setAddStudentError("Failed to add student.")
+    } finally {
+      setAddStudentLoading(false)
+    }
+  }
+
+  // Edit Marking Criteria logic
+  const openEditCriteria = (team: Team) => {
+    setEditTeam(team)
+    setEditCriteria({ ...team.markingCriteria })
+    setEditCriteriaError(null)
+    setEditCriteriaSuccess(null)
+  }
+  const handleEditCriteriaSave = async () => {
+    if (!editTeam) return
+    setEditCriteriaLoading(true)
+    setEditCriteriaError(null)
+    setEditCriteriaSuccess(null)
+    try {
+      const response = await fetch(`/api/teams/${editTeam.id}/criteria`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ markingCriteria: editCriteria }),
+      })
+      const data = await response.json()
+      if (response.ok && data.success) {
+        setEditCriteriaSuccess("Marking criteria updated.")
+        fetchTeams()
+        setTimeout(() => setEditTeam(null), 1200)
+      } else {
+        setEditCriteriaError(data.error || "Failed to update criteria.")
+      }
+    } catch {
+      setEditCriteriaError("Failed to update criteria.")
+    } finally {
+      setEditCriteriaLoading(false)
+    }
+  }
+
   if (!currentUser) {
     return <LoginForm />
   }
@@ -456,6 +564,12 @@ export default function CESARecruitmentDashboard() {
           </TabsList>
 
           <TabsContent value="students" className="space-y-6">
+            {/* Admin Add Student Button */}
+            {currentUser.role === "admin" && (
+              <div className="mb-4 flex justify-end">
+                <Button onClick={() => setIsAddStudentOpen(true)}>Add Student</Button>
+              </div>
+            )}
             {/* Filters and Search */}
             <Card>
               <CardHeader>
@@ -704,7 +818,6 @@ export default function CESARecruitmentDashboard() {
                         <span className="text-sm text-gray-600">Max Students:</span>
                         <span className="font-medium">{team.maxStudents}</span>
                       </div>
-
                       <div className="space-y-2">
                         <h4 className="text-sm font-medium">Marking Criteria:</h4>
                         <div className="space-y-1 text-xs">
@@ -730,6 +843,12 @@ export default function CESARecruitmentDashboard() {
                           </div>
                         </div>
                       </div>
+                      {/* Admin Edit Criteria Button */}
+                      {currentUser.role === "admin" && (
+                        <Button size="sm" variant="outline" onClick={() => openEditCriteria(team)}>
+                          Edit Marking Criteria
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -913,6 +1032,7 @@ export default function CESARecruitmentDashboard() {
                 />
               </div>
 
+
               <div className="flex justify-between items-center pt-4 border-t">
                 <div>
                   <span className="text-sm text-gray-600">Weighted Score: </span>
@@ -1005,6 +1125,185 @@ export default function CESARecruitmentDashboard() {
               ) : (
                 "Change Password"
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Student Dialog */}
+      <Dialog open={isAddStudentOpen} onOpenChange={setIsAddStudentOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add Student</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {addStudentError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{addStudentError}</AlertDescription>
+              </Alert>
+            )}
+            {addStudentSuccess && (
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{addStudentSuccess}</AlertDescription>
+              </Alert>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label>First Name</Label>
+                <Input value={newStudent.firstName} onChange={e => setNewStudent(s => ({ ...s, firstName: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Last Name</Label>
+                <Input value={newStudent.lastName} onChange={e => setNewStudent(s => ({ ...s, lastName: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Division</Label>
+                <Input value={newStudent.division} onChange={e => setNewStudent(s => ({ ...s, division: e.target.value }))} />
+              </div>
+              <div>
+                <Label>PRN Number</Label>
+                <Input value={newStudent.prnNumber} onChange={e => setNewStudent(s => ({ ...s, prnNumber: e.target.value }))} />
+              </div>
+              <div>
+                <Label>WhatsApp Number</Label>
+                <Input value={newStudent.whatsappNumber} onChange={e => setNewStudent(s => ({ ...s, whatsappNumber: e.target.value }))} />
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input value={newStudent.email} onChange={e => setNewStudent(s => ({ ...s, email: e.target.value }))} />
+              </div>
+              <div>
+                <Label>FY CGPA</Label>
+                <Input value={newStudent.fyCgpa} onChange={e => setNewStudent(s => ({ ...s, fyCgpa: e.target.value }))} />
+              </div>
+              <div>
+                <Label>FY Attendance</Label>
+                <Input value={newStudent.fyAttendance} onChange={e => setNewStudent(s => ({ ...s, fyAttendance: e.target.value }))} />
+              </div>
+              <div className="col-span-2">
+                <Label>Teams Applied (max 3)</Label>
+                <Select
+                  // Remove 'multiple' prop, use custom logic for multi-select
+                  value={newStudent.teamsApplied[0] || ""}
+                  onValueChange={v => {
+                    let updated = [...newStudent.teamsApplied]
+                    if (updated.includes(v)) {
+                      updated = updated.filter(t => t !== v)
+                    } else if (updated.length < 3) {
+                      updated.push(v)
+                    }
+                    setNewStudent(s => ({ ...s, teamsApplied: updated }))
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select up to 3 teams..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {teams.map(team => (
+                      <SelectItem
+                        key={team.id}
+                        value={team.id}
+                        disabled={
+                          newStudent.teamsApplied.length >= 3 &&
+                          !newStudent.teamsApplied.includes(team.id)
+                        }
+                      >
+                        <span>
+                          <input
+                            type="checkbox"
+                            checked={newStudent.teamsApplied.includes(team.id)}
+                            readOnly
+                            style={{ marginRight: 8 }}
+                          />
+                          {team.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="text-xs text-gray-500 mt-1">
+                  Selected: {newStudent.teamsApplied.map(id => teams.find(t => t.id === id)?.name).filter(Boolean).join(", ")}
+                </div>
+              </div>
+              <div className="col-span-2">
+                <Label>Accomplishment</Label>
+                <Textarea value={newStudent.accomplishment} onChange={e => setNewStudent(s => ({ ...s, accomplishment: e.target.value }))} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleAddStudent} disabled={addStudentLoading}>
+              {addStudentLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Add Student
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Marking Criteria Dialog */}
+      <Dialog open={!!editTeam} onOpenChange={v => !v && setEditTeam(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Marking Criteria</DialogTitle>
+            <DialogDescription>
+              Update the marking criteria for <b>{editTeam?.name}</b>
+            </DialogDescription>
+          </DialogHeader>
+          {editCriteria && (
+            <div className="space-y-3">
+              {editCriteriaError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{editCriteriaError}</AlertDescription>
+                </Alert>
+              )}
+              {editCriteriaSuccess && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{editCriteriaSuccess}</AlertDescription>
+                </Alert>
+              )}
+              {Object.entries(editCriteria).map(([key, val]: any) => (
+                <div key={key} className="flex gap-2 items-center">
+                  <Label className="w-32 capitalize">{key.replace(/([A-Z])/g, " $1")}</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={val.weight}
+                    onChange={e =>
+                      setEditCriteria((c: any) => ({
+                        ...c,
+                        [key]: { ...c[key], weight: Number(e.target.value) }
+                      }))
+                    }
+                    className="w-20"
+                  />
+                  <span className="text-xs text-gray-500">Weight (%)</span>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={10}
+                    value={val.maxMarks}
+                    onChange={e =>
+                      setEditCriteria((c: any) => ({
+                        ...c,
+                        [key]: { ...c[key], maxMarks: Number(e.target.value) }
+                      }))
+                    }
+                    className="w-20"
+                  />
+                  <span className="text-xs text-gray-500">Max Marks</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={handleEditCriteriaSave} disabled={editCriteriaLoading}>
+              {editCriteriaLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Save Criteria
             </Button>
           </DialogFooter>
         </DialogContent>
