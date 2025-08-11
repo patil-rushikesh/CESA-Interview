@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,9 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
-import { AlertCircle, Users, FileText, BarChart3, LogOut, Eye, Edit, Search, Download, Loader2 } from "lucide-react"
+import { AlertCircle, Users, FileText, BarChart3, LogOut, Eye, Edit, Search, Download, Loader2, ChevronLeft, ChevronRight } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { DialogFooter } from "@/components/ui/dialog"
+import { ReactElement, JSXElementConstructor, ReactNode, ReactPortal } from "react"
+import { Key } from "react"
+import { ReactElement, JSXElementConstructor, ReactNode, ReactPortal } from "react"
+import { ReactElement, JSXElementConstructor, ReactNode, ReactPortal } from "react"
 
 // Types
 interface Student {
@@ -139,6 +143,16 @@ export default function CESARecruitmentDashboard() {
   const [editCriteriaLoading, setEditCriteriaLoading] = useState(false)
   const [editCriteriaError, setEditCriteriaError] = useState<string | null>(null)
   const [editCriteriaSuccess, setEditCriteriaSuccess] = useState<string | null>(null)
+
+  // Edit Student dialog state
+  const [isEditStudentOpen, setIsEditStudentOpen] = useState(false)
+  const [editStudent, setEditStudent] = useState<Student | null>(null)
+  const [editStudentLoading, setEditStudentLoading] = useState(false)
+  const [editStudentError, setEditStudentError] = useState<string | null>(null)
+  const [editStudentSuccess, setEditStudentSuccess] = useState<string | null>(null)
+
+  // Ref for table scroll container (fix: useRef instead of assignment)
+  const tableScrollRef = useRef<HTMLDivElement>(null)
 
   // Fetch data functions
   const fetchStudents = async () => {
@@ -296,7 +310,7 @@ export default function CESARecruitmentDashboard() {
                 id="username"
                 placeholder={loginType === "admin" ? "Enter username" : "Enter team name"}
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e: { target: { value: any } }) => setUsername(e.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -306,7 +320,7 @@ export default function CESARecruitmentDashboard() {
                 type="password"
                 placeholder="Enter password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e: { target: { value: any } }) => setPassword(e.target.value)}
               />
             </div>
             <Button onClick={handleLogin} className="w-full" disabled={loginLoading}>
@@ -327,7 +341,7 @@ export default function CESARecruitmentDashboard() {
 
   // Calculate weighted score
   const calculateWeightedScore = (marks: TeamMarks, teamId: string): number => {
-    const team = teams.find((t) => t.id === teamId)
+    const team = teams.find((t: { id: string }) => t.id === teamId)
     if (!team) return 0
 
     const criteria = team.markingCriteria
@@ -343,7 +357,7 @@ export default function CESARecruitmentDashboard() {
 
   // Get student evaluation for a specific team
   const getStudentEvaluationForTeam = (studentId: string, teamId: string): Evaluation | null => {
-    return evaluations.find((evaluation) => evaluation.studentId === studentId && evaluation.teamId === teamId) || null
+    return evaluations.find((evaluation: { studentId: string; teamId: string }) => evaluation.studentId === studentId && evaluation.teamId === teamId) || null
   }
 
   // Handle marking submission
@@ -509,6 +523,37 @@ export default function CESARecruitmentDashboard() {
     }
   }
 
+  // Handle edit student save
+  const handleEditStudentSave = async () => {
+    if (!editStudent) return
+    setEditStudentError(null)
+    setEditStudentSuccess(null)
+    setEditStudentLoading(true)
+    try {
+      const response = await fetch(`/api/students/${editStudent.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editStudent),
+      })
+      const data = await response.json()
+      if (response.ok && data.success) {
+        setEditStudentSuccess("Student updated successfully.")
+        fetchStudents()
+        setTimeout(() => {
+          setIsEditStudentOpen(false)
+          setEditStudent(null)
+        }, 1200)
+      } else {
+        setEditStudentError(data.error || "Failed to update student.")
+      }
+    } catch {
+      setEditStudentError("Failed to update student.")
+    } finally {
+      setEditStudentLoading(false)
+    }
+  }
+
+  // Login component
   if (!currentUser) {
     return <LoginForm />
   }
@@ -588,7 +633,7 @@ export default function CESARecruitmentDashboard() {
                         id="search"
                         placeholder="Search by name, PRN, or email..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e: { target: { value: any } }) => setSearchTerm(e.target.value)}
                         className="pl-10"
                       />
                     </div>
@@ -603,7 +648,7 @@ export default function CESARecruitmentDashboard() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Teams</SelectItem>
-                          {teams.map((team) => (
+                          {teams.map((team: { id: any; name: any }) => (
                             <SelectItem key={team.id} value={team.id}>
                               {team.name}
                             </SelectItem>
@@ -630,125 +675,225 @@ export default function CESARecruitmentDashboard() {
                 </div>
 
                 {/* Students Table */}
-                <div className="rounded-md border">
-                  {loading ? (
-                    <div className="flex items-center justify-center p-8">
-                      <Loader2 className="h-8 w-8 animate-spin" />
-                      <span className="ml-2">Loading students...</span>
-                    </div>
-                  ) : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Student</TableHead>
-                          <TableHead>PRN</TableHead>
-                          <TableHead>Division</TableHead>
-                          <TableHead>CGPA</TableHead>
-                          <TableHead>Teams Applied</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {students.map((student) => {
-                          const evaluation = currentUser.teamId
-                            ? getStudentEvaluationForTeam(student.id, currentUser.teamId)
-                            : null
+                <div className="relative">
+                  {/* Fixed horizontal scroll buttons (now absolute to table container) */}
+                  <button
+                    type="button"
+                    aria-label="Scroll table left"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 z-30 bg-white/80 hover:bg-white border rounded-full shadow p-1"
+                    style={{ display: "flex", alignItems: "center" }}
+                    onClick={() => {
+                      if (tableScrollRef.current) {
+                        tableScrollRef.current.scrollBy({ left: -150, behavior: "smooth" })
+                      }
+                    }}
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Scroll table right"
+                    className="absolute right-0 top-1/2 -translate-y-1/2 z-30 bg-white/80 hover:bg-white border rounded-full shadow p-1"
+                    style={{ display: "flex", alignItems: "center" }}
+                    onClick={() => {
+                      if (tableScrollRef.current) {
+                        tableScrollRef.current.scrollBy({ left: 150, behavior: "smooth" })
+                      }
+                    }}
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                  <div
+                    ref={tableScrollRef}
+                    className="rounded-md border overflow-x-auto"
+                    style={{ maxWidth: "100%" }}
+                    onWheel={(e: React.WheelEvent<HTMLDivElement>) => {
+                      if (e.ctrlKey) {
+                        e.preventDefault()
+                        const container = e.currentTarget
+                        container.scrollLeft += e.deltaY
+                      }
+                    }}
+                  >
+                    {loading ? (
+                      <div className="flex items-center justify-center p-8">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                        <span className="ml-2">Loading students...</span>
+                      </div>
+                    ) : (
+                      <Table className="min-w-full">
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Student</TableHead>
+                            <TableHead>PRN</TableHead>
+                            <TableHead>Division</TableHead>
+                            <TableHead>CGPA</TableHead>
+                            <TableHead>Teams Applied</TableHead>
+                            {currentUser.role === "admin" && (
+                              <TableHead>Evaluation Status</TableHead>
+                            )}
+                            <TableHead>Status</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {students.map((student) => {
+                            const evaluation = currentUser.teamId
+                              ? getStudentEvaluationForTeam(student.id, currentUser.teamId)
+                              : null
 
-                          return (
-                            <TableRow key={student.id}>
-                              <TableCell>
-                                <div className="flex items-center space-x-3">
-                                  <Avatar>
-                                    <AvatarFallback>
-                                      {student.firstName[0]}
-                                      {student.lastName[0]}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <div>
-                                    <div className="font-medium">
-                                      {student.firstName} {student.lastName}
+                            return (
+                              <TableRow key={student.id}>
+                                <TableCell>
+                                  <div className="flex items-center space-x-3">
+                                    <Avatar>
+                                      <AvatarFallback>
+                                        {student.firstName[0]}
+                                        {student.lastName[0]}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                      <div className="font-medium">
+                                        {student.firstName} {student.lastName}
+                                      </div>
+                                      <div className="text-sm text-gray-500">{student.email}</div>
                                     </div>
-                                    <div className="text-sm text-gray-500">{student.email}</div>
                                   </div>
-                                </div>
-                              </TableCell>
-                              <TableCell className="font-mono">{student.prnNumber}</TableCell>
-                              <TableCell>{student.division}</TableCell>
-                              <TableCell>
-                                <Badge variant={Number.parseFloat(student.fyCgpa) >= 8 ? "default" : "secondary"}>
-                                  {student.fyCgpa}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex flex-wrap gap-1">
-                                  {student.teamsApplied.slice(0, 2).map((team, index) => (
-                                    <Badge key={index} variant="outline" className="text-xs">
-                                      {team}
-                                    </Badge>
-                                  ))}
-                                  {student.teamsApplied.length > 2 && (
-                                    <Badge variant="outline" className="text-xs">
-                                      +{student.teamsApplied.length - 2}
-                                    </Badge>
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                {evaluation ? (
-                                  <Badge className="bg-green-100 text-green-800">
-                                    Evaluated ({evaluation.overall}/10)
+                                </TableCell>
+                                <TableCell className="font-mono">{student.prnNumber}</TableCell>
+                                <TableCell>{student.division}</TableCell>
+                                <TableCell>
+                                  <Badge variant={Number.parseFloat(student.fyCgpa) >= 8 ? "default" : "secondary"}>
+                                    {student.fyCgpa}
                                   </Badge>
-                                ) : (
-                                  <Badge variant="secondary">Pending</Badge>
-                                )}
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex space-x-2">
-                                  <Button variant="outline" size="sm" onClick={() => setSelectedStudent(student)}>
-                                    <Eye className="h-4 w-4" />
-                                  </Button>
-                                  {currentUser.role === "panel" && currentUser.teamId && (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => {
-                                        setSelectedStudent(student)
-                                        setCurrentMarks(
-                                          evaluation
-                                            ? {
-                                              technical: evaluation.technical,
-                                              communication: evaluation.communication,
-                                              leadership: evaluation.leadership,
-                                              problemSolving: evaluation.problemSolving,
-                                              teamwork: evaluation.teamwork,
-                                              overall: evaluation.overall,
-                                              comments: evaluation.comments,
-                                            }
-                                            : {
-                                              technical: 0,
-                                              communication: 0,
-                                              leadership: 0,
-                                              problemSolving: 0,
-                                              teamwork: 0,
-                                              overall: 0,
-                                              comments: "",
-                                            },
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex flex-wrap gap-1">
+                                    {student.teamsApplied.slice(0, 2).map((teamId: any, index: any) => (
+                                      <Badge key={index} variant="outline" className="text-xs">
+                                        {teams.find((t: { id: any }) => t.id === teamId)?.name || teamId}
+                                      </Badge>
+                                    ))}
+                                    {student.teamsApplied.length > 2 && (
+                                      <Badge variant="outline" className="text-xs">
+                                        +{student.teamsApplied.length - 2}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                {/* Show all evaluations for admin */}
+                                {currentUser.role === "admin" && (
+                                  <TableCell>
+                                    <div className="flex flex-col gap-1">
+                                      {student.teamsApplied.map((teamId: Key | null | undefined) => {
+                                        const team = teams.find((t: { id: any }) => t.id === teamId)
+                                        const evaln = evaluations.find(
+                                          (                                          e: { studentId: any; teamId: any }) => e.studentId === student.id && e.teamId === teamId
                                         )
-                                        setIsMarkingDialogOpen(true)
-                                      }}
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
+                                        return (
+                                          <div key={teamId} className="flex items-center gap-2">
+                                            <Badge variant="secondary" className="text-xs">
+                                              {team?.name || teamId}
+                                            </Badge>
+                                            {evaln ? (
+                                              <Badge className="bg-green-100 text-green-800 text-xs">
+                                                Evaluated ({evaln.overall}/10)
+                                              </Badge>
+                                            ) : (
+                                              <Badge variant="secondary" className="text-xs">
+                                                Pending
+                                              </Badge>
+                                            )}
+                                          </div>
+                                        )
+                                      })}
+                                    </div>
+                                  </TableCell>
+                                )}
+                                {/* For panel, show only their own team status */}
+                                <TableCell>
+                                  {currentUser.role === "panel" && currentUser.teamId ? (
+                                    (() => {
+                                      const evaln = evaluations.find(
+                                        (                                        e: { studentId: any; teamId: any }) => e.studentId === student.id && e.teamId === currentUser.teamId
+                                      )
+                                      return evaln ? (
+                                        <Badge className="bg-green-100 text-green-800">
+                                          Evaluated ({evaln.overall}/10)
+                                        </Badge>
+                                      ) : (
+                                        <Badge variant="secondary">Pending</Badge>
+                                      )
+                                    })()
+                                  ) : (
+                                    <span className="text-xs text-gray-500">-</span>
                                   )}
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          )
-                        })}
-                      </TableBody>
-                    </Table>
-                  )}
+                                </TableCell>
+                                {/* ...existing Actions cell... */}
+                                <TableCell>
+                                  <div className="flex space-x-2">
+                                    <Button variant="outline" size="sm" onClick={() => setSelectedStudent(student)}>
+                                      <Eye className="h-4 w-4" />
+                                    </Button>
+                                    {currentUser.role === "admin" && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          setEditStudent({ ...student })
+                                          setIsEditStudentOpen(true)
+                                          setEditStudentError(null)
+                                          setEditStudentSuccess(null)
+                                        }}
+                                      >
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                    )}
+                                    {currentUser.role === "panel" && currentUser.teamId && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                          setSelectedStudent(student)
+                                          const evaluation = evaluations.find(
+                                            (e: { studentId: any; teamId: any }) => e.studentId === student.id && e.teamId === currentUser.teamId
+                                          )
+                                          setCurrentMarks(
+                                            evaluation
+                                              ? {
+                                                  technical: evaluation.technical,
+                                                  communication: evaluation.communication,
+                                                  leadership: evaluation.leadership,
+                                                  problemSolving: evaluation.problemSolving,
+                                                  teamwork: evaluation.teamwork,
+                                                  overall: evaluation.overall,
+                                                  comments: evaluation.comments,
+                                                }
+                                              : {
+                                                  technical: 0,
+                                                  communication: 0,
+                                                  leadership: 0,
+                                                  problemSolving: 0,
+                                                  teamwork: 0,
+                                                  overall: 0,
+                                                  comments: "",
+                                                },
+                                          )
+                                          setIsMarkingDialogOpen(true)
+                                        }}
+                                      >
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )
+                          })}
+                        </TableBody>
+                      </Table>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -785,7 +930,7 @@ export default function CESARecruitmentDashboard() {
                   <div className="text-2xl font-bold">
                     {students.length > 0
                       ? (
-                        students.reduce((sum, s) => sum + Number.parseFloat(s.fyCgpa || "0"), 0) / students.length
+                        students.reduce((sum: number, s: { fyCgpa: any }) => sum + Number.parseFloat(s.fyCgpa || "0"), 0) / students.length
                       ).toFixed(2)
                       : "0.00"}
                   </div>
@@ -806,7 +951,7 @@ export default function CESARecruitmentDashboard() {
 
           <TabsContent value="teams" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {teams.map((team) => (
+              {teams.map((team: Team) => (
                 <Card key={team.id}>
                   <CardHeader>
                     <CardTitle>{team.name}</CardTitle>
@@ -904,14 +1049,15 @@ export default function CESARecruitmentDashboard() {
 
           {selectedStudent && (
             <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
+              {/* Responsive grid for student info */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-medium">Email</Label>
-                  <p className="text-sm text-gray-600">{selectedStudent.email}</p>
+                  <p className="text-sm text-gray-600 break-all">{selectedStudent.email}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium">WhatsApp</Label>
-                  <p className="text-sm text-gray-600">{selectedStudent.whatsappNumber}</p>
+                  <p className="text-sm text-gray-600 break-all">{selectedStudent.whatsappNumber}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium">FY CGPA</Label>
@@ -926,7 +1072,7 @@ export default function CESARecruitmentDashboard() {
               <div>
                 <Label className="text-sm font-medium">Teams Applied</Label>
                 <div className="flex flex-wrap gap-2 mt-1">
-                  {selectedStudent.teamsApplied.map((team, index) => (
+                  {selectedStudent.teamsApplied.map((team: any, index: any) => (
                     <Badge key={index} variant="outline">
                       {team}
                     </Badge>
@@ -945,14 +1091,14 @@ export default function CESARecruitmentDashboard() {
               </div>
 
               {/* Show evaluations for this student */}
-              {evaluations.filter((evaluation) => evaluation.studentId === selectedStudent.id).length > 0 && (
+              {evaluations.filter((evaluation: { studentId: any }) => evaluation.studentId === selectedStudent.id).length > 0 && (
                 <div>
                   <Label className="text-sm font-medium">Evaluation Results</Label>
                   <div className="mt-2 space-y-2">
                     {evaluations
-                      .filter((evaluation) => evaluation.studentId === selectedStudent.id)
-                      .map((evaluation) => {
-                        const team = teams.find((t) => t.id === evaluation.teamId)
+                      .filter((evaluation: { studentId: any }) => evaluation.studentId === selectedStudent.id)
+                      .map((evaluation: { teamId: any; _id: any; overall: any; technical: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; communication: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; leadership: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; problemSolving: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; teamwork: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; comments: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined }) => {
+                        const team = teams.find((t: { id: any }) => t.id === evaluation.teamId)
                         return (
                           <Card key={evaluation._id}>
                             <CardContent className="pt-4">
@@ -994,7 +1140,7 @@ export default function CESARecruitmentDashboard() {
 
           {selectedStudent && currentUser?.teamId && (
             <div className="space-y-4">
-              {Object.entries(teams.find((t) => t.id === currentUser.teamId)?.markingCriteria || {}).map(
+              {Object.entries(teams.find((t: { id: any }) => t.id === currentUser.teamId)?.markingCriteria || {}).map(
                 ([criterion, config]) => (
                   <div key={criterion} className="space-y-2">
                     <div className="flex justify-between">
@@ -1007,8 +1153,8 @@ export default function CESARecruitmentDashboard() {
                       max="10"
                       step="0.5"
                       value={currentMarks[criterion as keyof TeamMarks] as number}
-                      onChange={(e) =>
-                        setCurrentMarks((prev) => ({
+                      onChange={(e: { target: { value: string } }) =>
+                        setCurrentMarks((prev: any) => ({
                           ...prev,
                           [criterion]: Number.parseFloat(e.target.value) || 0,
                         }))
@@ -1023,8 +1169,8 @@ export default function CESARecruitmentDashboard() {
                 <Textarea
                   placeholder="Add your evaluation comments..."
                   value={currentMarks.comments}
-                  onChange={(e) =>
-                    setCurrentMarks((prev) => ({
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                    setCurrentMarks((prev: TeamMarks) => ({
                       ...prev,
                       comments: e.target.value,
                     }))
@@ -1087,7 +1233,7 @@ export default function CESARecruitmentDashboard() {
                 id="old-password"
                 type="password"
                 value={oldPassword}
-                onChange={e => setOldPassword(e.target.value)}
+                onChange={(e: { target: { value: any } }) => setOldPassword(e.target.value)}
                 autoComplete="current-password"
               />
             </div>
@@ -1097,7 +1243,7 @@ export default function CESARecruitmentDashboard() {
                 id="new-password"
                 type="password"
                 value={newPassword}
-                onChange={e => setNewPassword(e.target.value)}
+                onChange={(e: { target: { value: any } }) => setNewPassword(e.target.value)}
                 autoComplete="new-password"
               />
             </div>
@@ -1107,7 +1253,7 @@ export default function CESARecruitmentDashboard() {
                 id="confirm-password"
                 type="password"
                 value={confirmPassword}
-                onChange={e => setConfirmPassword(e.target.value)}
+                onChange={(e: { target: { value: any } }) => setConfirmPassword(e.target.value)}
                 autoComplete="new-password"
               />
             </div>
@@ -1152,84 +1298,71 @@ export default function CESARecruitmentDashboard() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label>First Name</Label>
-                <Input value={newStudent.firstName} onChange={e => setNewStudent(s => ({ ...s, firstName: e.target.value }))} />
+                <Input value={newStudent.firstName} onChange={(e: { target: { value: any } }) => setNewStudent((s: any) => ({ ...s, firstName: e.target.value }))} />
               </div>
               <div>
                 <Label>Last Name</Label>
-                <Input value={newStudent.lastName} onChange={e => setNewStudent(s => ({ ...s, lastName: e.target.value }))} />
+                <Input value={newStudent.lastName} onChange={(e: { target: { value: any } }) => setNewStudent((s: any) => ({ ...s, lastName: e.target.value }))} />
               </div>
               <div>
                 <Label>Division</Label>
-                <Input value={newStudent.division} onChange={e => setNewStudent(s => ({ ...s, division: e.target.value }))} />
+                <Input value={newStudent.division} onChange={(e: { target: { value: any } }) => setNewStudent((s: any) => ({ ...s, division: e.target.value }))} />
               </div>
               <div>
                 <Label>PRN Number</Label>
-                <Input value={newStudent.prnNumber} onChange={e => setNewStudent(s => ({ ...s, prnNumber: e.target.value }))} />
+                <Input value={newStudent.prnNumber} onChange={(e: { target: { value: any } }) => setNewStudent((s: any) => ({ ...s, prnNumber: e.target.value }))} />
               </div>
               <div>
                 <Label>WhatsApp Number</Label>
-                <Input value={newStudent.whatsappNumber} onChange={e => setNewStudent(s => ({ ...s, whatsappNumber: e.target.value }))} />
+                <Input value={newStudent.whatsappNumber} onChange={(e: { target: { value: any } }) => setNewStudent((s: any) => ({ ...s, whatsappNumber: e.target.value }))} />
               </div>
               <div>
                 <Label>Email</Label>
-                <Input value={newStudent.email} onChange={e => setNewStudent(s => ({ ...s, email: e.target.value }))} />
+                <Input value={newStudent.email} onChange={(e: { target: { value: any } }) => setNewStudent((s: any) => ({ ...s, email: e.target.value }))} />
               </div>
               <div>
                 <Label>FY CGPA</Label>
-                <Input value={newStudent.fyCgpa} onChange={e => setNewStudent(s => ({ ...s, fyCgpa: e.target.value }))} />
+                <Input value={newStudent.fyCgpa} onChange={(e: { target: { value: any } }) => setNewStudent((s: any) => ({ ...s, fyCgpa: e.target.value }))} />
               </div>
               <div>
                 <Label>FY Attendance</Label>
-                <Input value={newStudent.fyAttendance} onChange={e => setNewStudent(s => ({ ...s, fyAttendance: e.target.value }))} />
+                <Input value={newStudent.fyAttendance} onChange={(e: { target: { value: any } }) => setNewStudent((s: any) => ({ ...s, fyAttendance: e.target.value }))} />
               </div>
               <div className="col-span-2">
                 <Label>Teams Applied (max 3)</Label>
-                <Select
-                  // Remove 'multiple' prop, use custom logic for multi-select
-                  value={newStudent.teamsApplied[0] || ""}
-                  onValueChange={v => {
-                    let updated = [...newStudent.teamsApplied]
-                    if (updated.includes(v)) {
-                      updated = updated.filter(t => t !== v)
-                    } else if (updated.length < 3) {
-                      updated.push(v)
-                    }
-                    setNewStudent(s => ({ ...s, teamsApplied: updated }))
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select up to 3 teams..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {teams.map(team => (
-                      <SelectItem
-                        key={team.id}
-                        value={team.id}
-                        disabled={
-                          newStudent.teamsApplied.length >= 3 &&
-                          !newStudent.teamsApplied.includes(team.id)
-                        }
-                      >
-                        <span>
-                          <input
-                            type="checkbox"
-                            checked={newStudent.teamsApplied.includes(team.id)}
-                            readOnly
-                            style={{ marginRight: 8 }}
-                          />
-                          {team.name}
-                        </span>
-                      </SelectItem>
+                <div className="border rounded px-2 py-1">
+                  <div className="flex flex-wrap gap-2">
+                    {teams.map((team) => (
+                      <label key={team.id} className="flex items-center gap-1 text-sm cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={newStudent.teamsApplied.includes(team.id)}
+                          disabled={
+                            newStudent.teamsApplied.length >= 3 &&
+                            !newStudent.teamsApplied.includes(team.id)
+                          }
+                          onChange={() => {
+                            let updated = [...newStudent.teamsApplied]
+                            if (updated.includes(team.id)) {
+                              updated = updated.filter(t => t !== team.id)
+                            } else if (updated.length < 3) {
+                              updated.push(team.id)
+                            }
+                            setNewStudent((s: any) => ({ ...s, teamsApplied: updated }))
+                          }}
+                        />
+                        {team.name}
+                      </label>
                     ))}
-                  </SelectContent>
-                </Select>
-                <div className="text-xs text-gray-500 mt-1">
-                  Selected: {newStudent.teamsApplied.map(id => teams.find(t => t.id === id)?.name).filter(Boolean).join(", ")}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Selected: {newStudent.teamsApplied.map((id: any) => teams.find((t: { id: any }) => t.id === id)?.name).filter(Boolean).join(", ")}
+                  </div>
                 </div>
               </div>
               <div className="col-span-2">
                 <Label>Accomplishment</Label>
-                <Textarea value={newStudent.accomplishment} onChange={e => setNewStudent(s => ({ ...s, accomplishment: e.target.value }))} />
+                <Textarea value={newStudent.accomplishment} onChange={(e: { target: { value: any } }) => setNewStudent((s: any) => ({ ...s, accomplishment: e.target.value }))} />
               </div>
             </div>
           </div>
@@ -1242,68 +1375,106 @@ export default function CESARecruitmentDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Marking Criteria Dialog */}
-      <Dialog open={!!editTeam} onOpenChange={v => !v && setEditTeam(null)}>
+      {/* Edit Student Dialog (Admin only) */}
+      <Dialog open={isEditStudentOpen} onOpenChange={setIsEditStudentOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Edit Marking Criteria</DialogTitle>
-            <DialogDescription>
-              Update the marking criteria for <b>{editTeam?.name}</b>
-            </DialogDescription>
+            <DialogTitle>Edit Student</DialogTitle>
           </DialogHeader>
-          {editCriteria && (
+          {editStudent && (
             <div className="space-y-3">
-              {editCriteriaError && (
+              {editStudentError && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{editCriteriaError}</AlertDescription>
+                  <AlertDescription>{editStudentError}</AlertDescription>
                 </Alert>
               )}
-              {editCriteriaSuccess && (
+              {editStudentSuccess && (
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{editCriteriaSuccess}</AlertDescription>
+                  <AlertDescription>{editStudentSuccess}</AlertDescription>
                 </Alert>
               )}
-              {Object.entries(editCriteria).map(([key, val]: any) => (
-                <div key={key} className="flex gap-2 items-center">
-                  <Label className="w-32 capitalize">{key.replace(/([A-Z])/g, " $1")}</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={val.weight}
-                    onChange={e =>
-                      setEditCriteria((c: any) => ({
-                        ...c,
-                        [key]: { ...c[key], weight: Number(e.target.value) }
-                      }))
-                    }
-                    className="w-20"
-                  />
-                  <span className="text-xs text-gray-500">Weight (%)</span>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={10}
-                    value={val.maxMarks}
-                    onChange={e =>
-                      setEditCriteria((c: any) => ({
-                        ...c,
-                        [key]: { ...c[key], maxMarks: Number(e.target.value) }
-                      }))
-                    }
-                    className="w-20"
-                  />
-                  <span className="text-xs text-gray-500">Max Marks</span>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label>First Name</Label>
+                  <Input value={editStudent.firstName} onChange={e => setEditStudent(s => s ? { ...s, firstName: e.target.value } : s)} />
                 </div>
-              ))}
+                <div>
+                  <Label>Last Name</Label>
+                  <Input value={editStudent.lastName} onChange={e => setEditStudent(s => s ? { ...s, lastName: e.target.value } : s)} />
+                </div>
+                <div>
+                  <Label>Division</Label>
+                  <Input value={editStudent.division} onChange={e => setEditStudent(s => s ? { ...s, division: e.target.value } : s)} />
+                </div>
+                <div>
+                  <Label>PRN Number</Label>
+                  <Input value={editStudent.prnNumber} onChange={e => setEditStudent(s => s ? { ...s, prnNumber: e.target.value } : s)} />
+                </div>
+                <div>
+                  <Label>WhatsApp Number</Label>
+                  <Input value={editStudent.whatsappNumber} onChange={e => setEditStudent(s => s ? { ...s, whatsappNumber: e.target.value } : s)} />
+                </div>
+                <div>
+                  <Label>Email</Label>
+                  <Input value={editStudent.email} onChange={e => setEditStudent(s => s ? { ...s, email: e.target.value } : s)} />
+                </div>
+                <div>
+                  <Label>FY CGPA</Label>
+                  <Input value={editStudent.fyCgpa} onChange={e => setEditStudent(s => s ? { ...s, fyCgpa: e.target.value } : s)} />
+                </div>
+                <div>
+                  <Label>FY Attendance</Label>
+                  <Input value={editStudent.fyAttendance} onChange={e => setEditStudent(s => s ? { ...s, fyAttendance: e.target.value } : s)} />
+                </div>
+                <div className="col-span-2">
+                  <Label>Teams Applied (max 3)</Label>
+                  <div className="border rounded px-2 py-1">
+                    <div className="flex flex-wrap gap-2">
+                      {teams.map((team) => (
+                        <label key={team.id} className="flex items-center gap-1 text-sm cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={editStudent.teamsApplied.includes(team.id)}
+                            disabled={
+                              editStudent.teamsApplied.length >= 3 &&
+                              !editStudent.teamsApplied.includes(team.id)
+                            }
+                            onChange={() => {
+                              let updated = [...editStudent.teamsApplied]
+                              if (updated.includes(team.id)) {
+                                updated = updated.filter(t => t !== team.id)
+                              } else if (updated.length < 3) {
+                                updated.push(team.id)
+                              }
+                              setEditStudent(s => s ? { ...s, teamsApplied: updated } : s)
+                            }}
+                          />
+                          {team.name}
+                        </label>
+                      ))}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Selected: {editStudent.teamsApplied.map((id: any) => teams.find((t: { id: any }) => t.id === id)?.name).filter(Boolean).join(", ")}
+                    </div>
+                  </div>
+                </div>
+                <div className="col-span-2">
+                  <Label>Accomplishment</Label>
+                  <Textarea value={editStudent.accomplishment} onChange={e => setEditStudent(s => s ? { ...s, accomplishment: e.target.value } : s)} />
+                </div>
+                <div className="col-span-2">
+                  <Label>About Yourself</Label>
+                  <Textarea value={editStudent.aboutYourself} onChange={e => setEditStudent(s => s ? { ...s, aboutYourself: e.target.value } : s)} />
+                </div>
+              </div>
             </div>
           )}
           <DialogFooter>
-            <Button onClick={handleEditCriteriaSave} disabled={editCriteriaLoading}>
-              {editCriteriaLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Save Criteria
+            <Button onClick={handleEditStudentSave} disabled={editStudentLoading}>
+              {editStudentLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
