@@ -17,8 +17,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { DialogFooter } from "@/components/ui/dialog"
 import { ReactElement, JSXElementConstructor, ReactNode, ReactPortal } from "react"
 import { Key } from "react"
-import { ReactElement, JSXElementConstructor, ReactNode, ReactPortal } from "react"
-import { ReactElement, JSXElementConstructor, ReactNode, ReactPortal } from "react"
 
 // Types
 interface Student {
@@ -570,13 +568,13 @@ export default function CESARecruitmentDashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">Welcome, {currentUser.username}</span>
-              <Button
+              {/* <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsChangePasswordOpen(true)}
               >
                 Change Password
-              </Button>
+              </Button> */}
               <Button
                 variant="outline"
                 size="sm"
