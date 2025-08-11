@@ -89,6 +89,7 @@ export default function CESARecruitmentDashboard() {
   const [teams, setTeams] = useState<Team[]>([])
   const [evaluations, setEvaluations] = useState<Evaluation[]>([])
   const [selectedTeam, setSelectedTeam] = useState<string>("all")
+  // Remove markingTeamId for admin; admin will evaluate for selectedTeam
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState("name")
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
@@ -360,16 +361,22 @@ export default function CESARecruitmentDashboard() {
 
   // Handle marking submission
   const handleMarkingSubmit = async () => {
-    if (!selectedStudent || !currentUser?.teamId || !currentUser.id) return
-
+    if (!selectedStudent || !currentUser?.id) return;
+    let teamId = currentUser.teamId;
+    if (currentUser.role === "admin") {
+      if (!selectedTeam || selectedTeam === "all") {
+        setError("Please select a team for evaluation using the team filter.");
+        return;
+      }
+      teamId = selectedTeam;
+    }
+    if (!teamId) return;
     try {
-      setLoading(true)
-
+      setLoading(true);
       const updatedMarks = {
         ...currentMarks,
-        overall: calculateWeightedScore(currentMarks, currentUser.teamId),
-      }
-
+        overall: calculateWeightedScore(currentMarks, teamId),
+      };
       const response = await fetch("/api/evaluations", {
         method: "POST",
         headers: {
@@ -377,29 +384,26 @@ export default function CESARecruitmentDashboard() {
         },
         body: JSON.stringify({
           studentId: selectedStudent.id,
-          teamId: currentUser.teamId,
+          teamId,
           marks: updatedMarks,
           evaluatorId: currentUser.id,
         }),
-      })
-
-      const data = await response.json()
-
+      });
+      const data = await response.json();
       if (data.success) {
-        // Refresh evaluations
-        await fetchEvaluations()
-        setIsMarkingDialogOpen(false)
-        setSelectedStudent(null)
+        await fetchEvaluations();
+        setIsMarkingDialogOpen(false);
+        setSelectedStudent(null);
       } else {
-        setError(data.error || "Failed to save evaluation")
+        setError(data.error || "Failed to save evaluation");
       }
     } catch (err) {
-      setError("Failed to save evaluation")
-      console.error("Error saving evaluation:", err)
+      setError("Failed to save evaluation");
+      console.error("Error saving evaluation:", err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   // Handle password change
   const handleChangePassword = async () => {
@@ -415,7 +419,7 @@ export default function CESARecruitmentDashboard() {
     }
     setChangePasswordLoading(true)
     try {
-      const response = await fetch("/api/auth/change-password", {
+      const response = await fetch("/api/change-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1133,10 +1137,14 @@ export default function CESARecruitmentDashboard() {
             <DialogTitle>
               Evaluate {selectedStudent?.firstName} {selectedStudent?.lastName}
             </DialogTitle>
-            <DialogDescription>{currentUser?.teamName} - Rate each criterion from 0-10</DialogDescription>
+            <DialogDescription>
+              {currentUser?.role === "admin"
+                ? `${teams.find(t => t.id === selectedTeam)?.name || "Select a team using the filter above"} - Rate each criterion from 0-10`
+                : `${currentUser?.teamName} - Rate each criterion from 0-10`}
+            </DialogDescription>
           </DialogHeader>
 
-          {selectedStudent && currentUser?.teamId && (
+          {selectedStudent && ((currentUser?.role === "panel" && currentUser?.teamId) || currentUser?.role === "admin") && (
             <div className="space-y-4">
               {Object.entries(teams.find((t: { id: any }) => t.id === currentUser.teamId)?.markingCriteria || {}).map(
                 ([criterion, config]) => (
@@ -1176,11 +1184,10 @@ export default function CESARecruitmentDashboard() {
                 />
               </div>
 
-
               <div className="flex justify-between items-center pt-4 border-t">
                 <div>
                   <span className="text-sm text-gray-600">Weighted Score: </span>
-                  <span className="font-bold">{calculateWeightedScore(currentMarks, currentUser.teamId)}/10</span>
+                  <span className="font-bold">{calculateWeightedScore(currentMarks, currentUser.role === "admin" ? selectedTeam : currentUser.teamId as string)}/10</span>
                 </div>
                 <div className="space-x-2">
                   <Button variant="outline" onClick={() => setIsMarkingDialogOpen(false)}>
