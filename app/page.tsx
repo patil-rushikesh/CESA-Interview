@@ -1,99 +1,150 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useRef } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
-import { AlertCircle, Users, FileText, BarChart3, LogOut, Eye, Edit, Search, Download, Loader2, ChevronLeft, ChevronRight } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { DialogFooter } from "@/components/ui/dialog"
-import { ReactElement, JSXElementConstructor, ReactNode, ReactPortal } from "react"
-import { Key } from "react"
+import { useState, useEffect, useRef } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertCircle,
+  Users,
+  FileText,
+  BarChart3,
+  LogOut,
+  Eye,
+  Edit,
+  Search,
+  Download,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { DialogFooter } from "@/components/ui/dialog";
+import {
+  ReactElement,
+  JSXElementConstructor,
+  ReactNode,
+  ReactPortal,
+} from "react";
+import { Key } from "react";
+import axios from "axios";
 
 // Types
 interface Student {
-  id: string
-  firstName: string
-  lastName: string
-  division: string
-  prnNumber: string
-  whatsappNumber: string
-  email: string
-  fyCgpa: string
-  fyAttendance: string
-  teamsApplied: string[]
-  aboutYourself: string
-  accomplishment: string
-  teamInfluence: string
-  submissionTime: string
-  panelAssignments: string[]
+  id: string;
+  firstName: string;
+  lastName: string;
+  division: string;
+  prnNumber: string;
+  whatsappNumber: string;
+  email: string;
+  fyCgpa: string;
+  fyAttendance: string;
+  teamsApplied: string[];
+  aboutYourself: string;
+  accomplishment: string;
+  teamInfluence: string;
+  submissionTime: string;
+  panelAssignments: string[];
 }
 
 interface TeamMarks {
-  technical: number
-  communication: number
-  leadership: number
-  problemSolving: number
-  teamwork: number
-  overall: number
-  comments: string
+  technical: number;
+  communication: number;
+  leadership: number;
+  problemSolving: number;
+  teamwork: number;
+  overall: number;
+  comments: string;
 }
 
 interface Team {
-  id: string
-  name: string
-  description: string
-  maxStudents: number
+  id: string;
+  name: string;
+  description: string;
+  maxStudents: number;
   markingCriteria: {
-    technical: { weight: number; maxMarks: number }
-    communication: { weight: number; maxMarks: number }
-    leadership: { weight: number; maxMarks: number }
-    problemSolving: { weight: number; maxMarks: number }
-    teamwork: { weight: number; maxMarks: number }
-  }
+    technical: { weight: number; maxMarks: number };
+    communication: { weight: number; maxMarks: number };
+    leadership: { weight: number; maxMarks: number };
+    problemSolving: { weight: number; maxMarks: number };
+    teamwork: { weight: number; maxMarks: number };
+  };
 }
 
 interface User {
-  id: string
-  username: string
-  role: "admin" | "panel"
-  teamId?: string
-  teamName?: string
+  id: string;
+  username: string;
+  role: "admin" | "panel";
+  teamId?: string;
+  teamName?: string;
 }
 
 interface Evaluation {
-  _id: string
-  studentId: string
-  teamId: string
-  technical: number
-  communication: number
-  leadership: number
-  problemSolving: number
-  teamwork: number
-  overall: number
-  comments: string
-  evaluatedAt: string
+  _id: string;
+  studentId: string;
+  teamId: string;
+  technical: number;
+  communication: number;
+  leadership: number;
+  problemSolving: number;
+  teamwork: number;
+  overall: number;
+  comments: string;
+  evaluatedAt: string;
 }
 
 export default function CESARecruitmentDashboard() {
-  const [currentUser, setCurrentUser] = useState<User | null>(null)
-  const [students, setStudents] = useState<Student[]>([])
-  const [teams, setTeams] = useState<Team[]>([])
-  const [evaluations, setEvaluations] = useState<Evaluation[]>([])
-  const [selectedTeam, setSelectedTeam] = useState<string>("all")
+  // Round completion checkboxes state for each student
+  const [studentRounds, setStudentRounds] = useState<
+    Record<string, { round1: boolean; round2: boolean }>
+  >({});
+  // Round completion checkboxes state
+  const [round1Complete, setRound1Complete] = useState(false);
+  const [round2Complete, setRound2Complete] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
+  const [selectedTeam, setSelectedTeam] = useState<string>("all");
   // Remove markingTeamId for admin; admin will evaluate for selectedTeam
-  const [searchTerm, setSearchTerm] = useState("")
-  const [sortBy, setSortBy] = useState("name")
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
-  const [isMarkingDialogOpen, setIsMarkingDialogOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("name");
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [isMarkingDialogOpen, setIsMarkingDialogOpen] = useState(false);
   const [currentMarks, setCurrentMarks] = useState<TeamMarks>({
     technical: 0,
     communication: 0,
@@ -102,24 +153,30 @@ export default function CESARecruitmentDashboard() {
     teamwork: 0,
     overall: 0,
     comments: "",
-  })
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Change password states
-  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false)
-  const [oldPassword, setOldPassword] = useState("")
-  const [newPassword, setNewPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [changePasswordLoading, setChangePasswordLoading] = useState(false)
-  const [changePasswordError, setChangePasswordError] = useState<string | null>(null)
-  const [changePasswordSuccess, setChangePasswordSuccess] = useState<string | null>(null)
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changePasswordLoading, setChangePasswordLoading] = useState(false);
+  const [changePasswordError, setChangePasswordError] = useState<string | null>(
+    null
+  );
+  const [changePasswordSuccess, setChangePasswordSuccess] = useState<
+    string | null
+  >(null);
 
   // Add Student dialog state
-  const [isAddStudentOpen, setIsAddStudentOpen] = useState(false)
-  const [addStudentLoading, setAddStudentLoading] = useState(false)
-  const [addStudentError, setAddStudentError] = useState<string | null>(null)
-  const [addStudentSuccess, setAddStudentSuccess] = useState<string | null>(null)
+  const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
+  const [addStudentLoading, setAddStudentLoading] = useState(false);
+  const [addStudentError, setAddStudentError] = useState<string | null>(null);
+  const [addStudentSuccess, setAddStudentSuccess] = useState<string | null>(
+    null
+  );
   const [newStudent, setNewStudent] = useState({
     firstName: "",
     lastName: "",
@@ -134,123 +191,159 @@ export default function CESARecruitmentDashboard() {
     teamInfluence: "",
     submissionTime: "",
     panelAssignments: [],
-  })
+  });
 
   // Edit Marking Criteria dialog state
-  const [editTeam, setEditTeam] = useState<Team | null>(null)
-  const [editCriteria, setEditCriteria] = useState<any>(null)
-  const [editCriteriaLoading, setEditCriteriaLoading] = useState(false)
-  const [editCriteriaError, setEditCriteriaError] = useState<string | null>(null)
-  const [editCriteriaSuccess, setEditCriteriaSuccess] = useState<string | null>(null)
+  const [editTeam, setEditTeam] = useState<Team | null>(null);
+  const [editCriteria, setEditCriteria] = useState<any>(null);
+  const [editCriteriaLoading, setEditCriteriaLoading] = useState(false);
+  const [editCriteriaError, setEditCriteriaError] = useState<string | null>(
+    null
+  );
+  const [editCriteriaSuccess, setEditCriteriaSuccess] = useState<string | null>(
+    null
+  );
 
   // Edit Student dialog state
-  const [isEditStudentOpen, setIsEditStudentOpen] = useState(false)
-  const [editStudent, setEditStudent] = useState<Student | null>(null)
-  const [editStudentLoading, setEditStudentLoading] = useState(false)
-  const [editStudentError, setEditStudentError] = useState<string | null>(null)
-  const [editStudentSuccess, setEditStudentSuccess] = useState<string | null>(null)
+  const [isEditStudentOpen, setIsEditStudentOpen] = useState(false);
+  const [editStudent, setEditStudent] = useState<Student | null>(null);
+  const [editStudentLoading, setEditStudentLoading] = useState(false);
+  const [editStudentError, setEditStudentError] = useState<string | null>(null);
+  const [editStudentSuccess, setEditStudentSuccess] = useState<string | null>(
+    null
+  );
 
   // Ref for table scroll container (fix: useRef instead of assignment)
-  const tableScrollRef = useRef<HTMLDivElement>(null)
+  const tableScrollRef = useRef<HTMLDivElement>(null);
 
   // Fetch data functions
+
+  // Update round completion status for a student
+  const updateRound = async (
+    studentId: string,
+    round1: boolean,
+    round2: boolean
+  ) => {
+    try {
+      await axios.post("/api/updateRound", {
+        studentId,
+        round1Complete: round1,
+        round2Complete: round2,
+      });
+    } catch (err) {
+      // Optionally show error toast
+      console.error("Failed to update round status", err);
+    }
+  };
+
   const fetchStudents = async () => {
     try {
-      setLoading(true)
-      const params = new URLSearchParams()
+      setLoading(true);
+      const params = new URLSearchParams();
       if (currentUser?.role === "panel" && currentUser.teamId) {
-        params.append("teamId", currentUser.teamId)
+        params.append("teamId", currentUser.teamId);
       } else if (selectedTeam !== "all") {
-        params.append("teamId", selectedTeam)
+        params.append("teamId", selectedTeam);
       }
-      if (searchTerm) params.append("search", searchTerm)
-      if (sortBy) params.append("sortBy", sortBy)
+      if (searchTerm) params.append("search", searchTerm);
+      if (sortBy) params.append("sortBy", sortBy);
 
-      const response = await fetch(`/api/students?${params}`)
-      const data = await response.json()
+      const response = await fetch(`/api/students?${params}`);
+      const data = await response.json();
 
       if (response.ok) {
-        setStudents(data.students)
+        setStudents(data.students);
+        // Map round status from DB to studentRounds state
+        const roundsMap: Record<string, { round1: boolean; round2: boolean }> =
+          {};
+        for (const s of data.students) {
+          roundsMap[s.id] = {
+            round1: s.round1Complete ?? false,
+            round2: s.round2Complete ?? false,
+          };
+        }
+        setStudentRounds(roundsMap);
       } else {
-        setError(data.error || "Failed to fetch students")
+        setError(data.error || "Failed to fetch students");
       }
     } catch (err) {
-      setError("Failed to fetch students")
-      console.error("Error fetching students:", err)
+      setError("Failed to fetch students");
+      console.error("Error fetching students:", err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const fetchTeams = async () => {
     try {
-      const response = await fetch("/api/teams")
-      const data = await response.json()
+      const response = await fetch("/api/teams");
+      const data = await response.json();
 
       if (response.ok) {
-        setTeams(data.teams)
+        setTeams(data.teams);
       } else {
-        setError(data.error || "Failed to fetch teams")
+        setError(data.error || "Failed to fetch teams");
       }
     } catch (err) {
-      setError("Failed to fetch teams")
-      console.error("Error fetching teams:", err)
+      setError("Failed to fetch teams");
+      console.error("Error fetching teams:", err);
     }
-  }
+  };
 
   const fetchEvaluations = async () => {
     try {
-      const response = await fetch("/api/evaluations")
-      const data = await response.json()
+      const response = await fetch("/api/evaluations");
+      const data = await response.json();
 
       if (response.ok) {
-        setEvaluations(data.evaluations)
+        setEvaluations(data.evaluations);
       } else {
-        setError(data.error || "Failed to fetch evaluations")
+        setError(data.error || "Failed to fetch evaluations");
       }
     } catch (err) {
-      setError("Failed to fetch evaluations")
-      console.error("Error fetching evaluations:", err)
+      setError("Failed to fetch evaluations");
+      console.error("Error fetching evaluations:", err);
     }
-  }
+  };
 
   // Load data when user changes or filters change
   useEffect(() => {
     if (currentUser) {
-      fetchStudents()
-      fetchTeams()
-      fetchEvaluations()
+      fetchStudents();
+      fetchTeams();
+      fetchEvaluations();
     }
-  }, [currentUser, selectedTeam, searchTerm, sortBy])
+  }, [currentUser, selectedTeam, searchTerm, sortBy]);
 
   // Load user from sessionStorage on mount
   useEffect(() => {
-    const storedUser = typeof window !== "undefined" ? sessionStorage.getItem("cesaUser") : null
+    const storedUser =
+      typeof window !== "undefined" ? sessionStorage.getItem("cesaUser") : null;
     if (storedUser) {
-      setCurrentUser(JSON.parse(storedUser))
+      setCurrentUser(JSON.parse(storedUser));
     }
-  }, [])
+  }, []);
 
   // Save user to sessionStorage when currentUser changes
   useEffect(() => {
     if (currentUser) {
-      sessionStorage.setItem("cesaUser", JSON.stringify(currentUser))
+      sessionStorage.setItem("cesaUser", JSON.stringify(currentUser));
     } else {
-      sessionStorage.removeItem("cesaUser")
+      sessionStorage.removeItem("cesaUser");
     }
-  }, [currentUser])
+  }, [currentUser]);
 
   // Login component
   const LoginForm = () => {
-    const [username, setUsername] = useState("")
-    const [password, setPassword] = useState("")
-    const [loginType, setLoginType] = useState<"admin" | "panel">("panel")
-    const [loginLoading, setLoginLoading] = useState(false)
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
+    const [loginType, setLoginType] = useState<"admin" | "panel">("panel");
+    const [loginLoading, setLoginLoading] = useState(false);
 
     const handleLogin = async () => {
       try {
-        setLoginLoading(true)
-        setError(null)
+        setLoginLoading(true);
+        setError(null);
 
         const response = await fetch("/api/auth", {
           method: "POST",
@@ -258,29 +351,31 @@ export default function CESARecruitmentDashboard() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ username, password, loginType }),
-        })
+        });
 
-        const data = await response.json()
+        const data = await response.json();
 
         if (data.success) {
-          setCurrentUser(data.user)
+          setCurrentUser(data.user);
           // sessionStorage is handled by useEffect above
         } else {
-          setError(data.message || "Login failed")
+          setError(data.message || "Login failed");
         }
       } catch (err) {
-        setError("Login failed. Please try again.")
-        console.error("Login error:", err)
+        setError("Login failed. Please try again.");
+        console.error("Login error:", err);
       } finally {
-        setLoginLoading(false)
+        setLoginLoading(false);
       }
-    }
+    };
 
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-gray-900">CESA Recruitment 2025-26</CardTitle>
+            <CardTitle className="text-2xl font-bold text-gray-900">
+              CESA Recruitment 2025-26
+            </CardTitle>
             <CardDescription>Interview Panel Dashboard</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -293,7 +388,12 @@ export default function CESARecruitmentDashboard() {
 
             <div className="space-y-2">
               <Label htmlFor="loginType">Login Type</Label>
-              <Select value={loginType} onValueChange={(value: "admin" | "panel") => setLoginType(value)}>
+              <Select
+                value={loginType}
+                onValueChange={(value: "admin" | "panel") =>
+                  setLoginType(value)
+                }
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -304,12 +404,18 @@ export default function CESARecruitmentDashboard() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="username">{loginType === "admin" ? "Username" : "Team Name"}</Label>
+              <Label htmlFor="username">
+                {loginType === "admin" ? "Username" : "Team Name"}
+              </Label>
               <Input
                 id="username"
-                placeholder={loginType === "admin" ? "Enter username" : "Enter team name"}
+                placeholder={
+                  loginType === "admin" ? "Enter username" : "Enter team name"
+                }
                 value={username}
-                onChange={(e: { target: { value: any } }) => setUsername(e.target.value)}
+                onChange={(e: { target: { value: any } }) =>
+                  setUsername(e.target.value)
+                }
               />
             </div>
             <div className="space-y-2">
@@ -319,10 +425,16 @@ export default function CESARecruitmentDashboard() {
                 type="password"
                 placeholder="Enter password"
                 value={password}
-                onChange={(e: { target: { value: any } }) => setPassword(e.target.value)}
+                onChange={(e: { target: { value: any } }) =>
+                  setPassword(e.target.value)
+                }
               />
             </div>
-            <Button onClick={handleLogin} className="w-full" disabled={loginLoading}>
+            <Button
+              onClick={handleLogin}
+              className="w-full"
+              disabled={loginLoading}
+            >
               {loginLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -335,29 +447,37 @@ export default function CESARecruitmentDashboard() {
           </CardContent>
         </Card>
       </div>
-    )
-  }
+    );
+  };
 
   // Calculate weighted score
   const calculateWeightedScore = (marks: TeamMarks, teamId: string): number => {
-    const team = teams.find((t: { id: string }) => t.id === teamId)
-    if (!team) return 0
+    const team = teams.find((t: { id: string }) => t.id === teamId);
+    if (!team) return 0;
 
-    const criteria = team.markingCriteria
+    const criteria = team.markingCriteria;
     const totalScore =
       (marks.technical * criteria.technical.weight) / 100 +
       (marks.communication * criteria.communication.weight) / 100 +
       (marks.leadership * criteria.leadership.weight) / 100 +
       (marks.problemSolving * criteria.problemSolving.weight) / 100 +
-      (marks.teamwork * criteria.teamwork.weight) / 100
+      (marks.teamwork * criteria.teamwork.weight) / 100;
 
-    return Math.round(totalScore * 10) / 10
-  }
+    return Math.round(totalScore * 10) / 10;
+  };
 
   // Get student evaluation for a specific team
-  const getStudentEvaluationForTeam = (studentId: string, teamId: string): Evaluation | null => {
-    return evaluations.find((evaluation: { studentId: string; teamId: string }) => evaluation.studentId === studentId && evaluation.teamId === teamId) || null
-  }
+  const getStudentEvaluationForTeam = (
+    studentId: string,
+    teamId: string
+  ): Evaluation | null => {
+    return (
+      evaluations.find(
+        (evaluation: { studentId: string; teamId: string }) =>
+          evaluation.studentId === studentId && evaluation.teamId === teamId
+      ) || null
+    );
+  };
 
   // Handle marking submission
   const handleMarkingSubmit = async () => {
@@ -407,17 +527,17 @@ export default function CESARecruitmentDashboard() {
 
   // Handle password change
   const handleChangePassword = async () => {
-    setChangePasswordError(null)
-    setChangePasswordSuccess(null)
+    setChangePasswordError(null);
+    setChangePasswordSuccess(null);
     if (!oldPassword || !newPassword || !confirmPassword) {
-      setChangePasswordError("All fields are required.")
-      return
+      setChangePasswordError("All fields are required.");
+      return;
     }
     if (newPassword !== confirmPassword) {
-      setChangePasswordError("New passwords do not match.")
-      return
+      setChangePasswordError("New passwords do not match.");
+      return;
     }
-    setChangePasswordLoading(true)
+    setChangePasswordLoading(true);
     try {
       const response = await fetch("/api/change-password", {
         method: "POST",
@@ -427,44 +547,44 @@ export default function CESARecruitmentDashboard() {
           oldPassword,
           newPassword,
         }),
-      })
-      const data = await response.json()
+      });
+      const data = await response.json();
       if (response.ok && data.success) {
-        setChangePasswordSuccess("Password changed successfully.")
-        setOldPassword("")
-        setNewPassword("")
-        setConfirmPassword("")
-        setTimeout(() => setIsChangePasswordOpen(false), 1500)
+        setChangePasswordSuccess("Password changed successfully.");
+        setOldPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setTimeout(() => setIsChangePasswordOpen(false), 1500);
       } else {
-        setChangePasswordError(data.error || "Failed to change password.")
+        setChangePasswordError(data.error || "Failed to change password.");
       }
     } catch (err) {
-      setChangePasswordError("Failed to change password.")
+      setChangePasswordError("Failed to change password.");
     } finally {
-      setChangePasswordLoading(false)
+      setChangePasswordLoading(false);
     }
-  }
+  };
 
   // Add Student logic
   const handleAddStudent = async () => {
-    setAddStudentError(null)
-    setAddStudentSuccess(null)
-    setAddStudentLoading(true)
+    setAddStudentError(null);
+    setAddStudentSuccess(null);
+    setAddStudentLoading(true);
     // Limit to max 3 teams
     if (newStudent.teamsApplied.length > 3) {
-      setAddStudentError("You can apply for a maximum of 3 teams.")
-      setAddStudentLoading(false)
-      return
+      setAddStudentError("You can apply for a maximum of 3 teams.");
+      setAddStudentLoading(false);
+      return;
     }
     try {
       const response = await fetch("/api/students", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newStudent),
-      })
-      const data = await response.json()
+      });
+      const data = await response.json();
       if (response.ok && data.success) {
-        setAddStudentSuccess("Student added successfully.")
+        setAddStudentSuccess("Student added successfully.");
         setNewStudent({
           firstName: "",
           lastName: "",
@@ -479,85 +599,85 @@ export default function CESARecruitmentDashboard() {
           teamInfluence: "",
           submissionTime: "",
           panelAssignments: [],
-        })
-        fetchStudents()
-        setTimeout(() => setIsAddStudentOpen(false), 1200)
+        });
+        fetchStudents();
+        setTimeout(() => setIsAddStudentOpen(false), 1200);
       } else {
-        setAddStudentError(data.error || "Failed to add student.")
+        setAddStudentError(data.error || "Failed to add student.");
       }
     } catch {
-      setAddStudentError("Failed to add student.")
+      setAddStudentError("Failed to add student.");
     } finally {
-      setAddStudentLoading(false)
+      setAddStudentLoading(false);
     }
-  }
+  };
 
   // Edit Marking Criteria logic
   const openEditCriteria = (team: Team) => {
-    setEditTeam(team)
-    setEditCriteria({ ...team.markingCriteria })
-    setEditCriteriaError(null)
-    setEditCriteriaSuccess(null)
-  }
+    setEditTeam(team);
+    setEditCriteria({ ...team.markingCriteria });
+    setEditCriteriaError(null);
+    setEditCriteriaSuccess(null);
+  };
   const handleEditCriteriaSave = async () => {
-    if (!editTeam) return
-    setEditCriteriaLoading(true)
-    setEditCriteriaError(null)
-    setEditCriteriaSuccess(null)
+    if (!editTeam) return;
+    setEditCriteriaLoading(true);
+    setEditCriteriaError(null);
+    setEditCriteriaSuccess(null);
     try {
       const response = await fetch(`/api/teams/${editTeam.id}/criteria`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ markingCriteria: editCriteria }),
-      })
-      const data = await response.json()
+      });
+      const data = await response.json();
       if (response.ok && data.success) {
-        setEditCriteriaSuccess("Marking criteria updated.")
-        fetchTeams()
-        setTimeout(() => setEditTeam(null), 1200)
+        setEditCriteriaSuccess("Marking criteria updated.");
+        fetchTeams();
+        setTimeout(() => setEditTeam(null), 1200);
       } else {
-        setEditCriteriaError(data.error || "Failed to update criteria.")
+        setEditCriteriaError(data.error || "Failed to update criteria.");
       }
     } catch {
-      setEditCriteriaError("Failed to update criteria.")
+      setEditCriteriaError("Failed to update criteria.");
     } finally {
-      setEditCriteriaLoading(false)
+      setEditCriteriaLoading(false);
     }
-  }
+  };
 
   // Handle edit student save
   const handleEditStudentSave = async () => {
-    if (!editStudent) return
-    setEditStudentError(null)
-    setEditStudentSuccess(null)
-    setEditStudentLoading(true)
+    if (!editStudent) return;
+    setEditStudentError(null);
+    setEditStudentSuccess(null);
+    setEditStudentLoading(true);
     try {
       const response = await fetch(`/api/students/${editStudent.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editStudent),
-      })
-      const data = await response.json()
+      });
+      const data = await response.json();
       if (response.ok && data.success) {
-        setEditStudentSuccess("Student updated successfully.")
-        fetchStudents()
+        setEditStudentSuccess("Student updated successfully.");
+        fetchStudents();
         setTimeout(() => {
-          setIsEditStudentOpen(false)
-          setEditStudent(null)
-        }, 1200)
+          setIsEditStudentOpen(false);
+          setEditStudent(null);
+        }, 1200);
       } else {
-        setEditStudentError(data.error || "Failed to update student.")
+        setEditStudentError(data.error || "Failed to update student.");
       }
     } catch {
-      setEditStudentError("Failed to update student.")
+      setEditStudentError("Failed to update student.");
     } finally {
-      setEditStudentLoading(false)
+      setEditStudentLoading(false);
     }
-  }
+  };
 
   // Login component
   if (!currentUser) {
-    return <LoginForm />
+    return <LoginForm />;
   }
 
   return (
@@ -567,24 +687,30 @@ export default function CESARecruitmentDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-4">
-              <h1 className="text-xl font-semibold text-gray-900">CESA Recruitment Dashboard</h1>
-              <Badge variant="outline">{currentUser.role === "admin" ? "Admin" : currentUser.teamName}</Badge>
+              <h1 className="text-xl font-semibold text-gray-900">
+                CESA Recruitment Dashboard
+              </h1>
+              <Badge variant="outline">
+                {currentUser.role === "admin" ? "Admin" : currentUser.teamName}
+              </Badge>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">Welcome, {currentUser.username}</span>
-              {/* <Button
+              <span className="text-sm text-gray-600">
+                Welcome, {currentUser.username}
+              </span>
+              <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsChangePasswordOpen(true)}
               >
                 Change Password
-              </Button> */}
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  setCurrentUser(null)
-                  sessionStorage.removeItem("cesaUser")
+                  setCurrentUser(null);
+                  sessionStorage.removeItem("cesaUser");
                 }}
               >
                 <LogOut className="h-4 w-4 mr-2" />
@@ -614,7 +740,9 @@ export default function CESARecruitmentDashboard() {
             {/* Admin Add Student Button */}
             {currentUser.role === "admin" && (
               <div className="mb-4 flex justify-end">
-                <Button onClick={() => setIsAddStudentOpen(true)}>Add Student</Button>
+                <Button onClick={() => setIsAddStudentOpen(true)}>
+                  Add Student
+                </Button>
               </div>
             )}
             {/* Filters and Search */}
@@ -626,6 +754,25 @@ export default function CESARecruitmentDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
+                {/* Round Completion Checkboxes */}
+                <div className="flex gap-6 mb-4 items-center">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={round1Complete}
+                      onChange={() => setRound1Complete((prev) => !prev)}
+                    />
+                    <span>Round 1 Complete</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={round2Complete}
+                      onChange={() => setRound2Complete((prev) => !prev)}
+                    />
+                    <span>Round 2 Complete</span>
+                  </label>
+                </div>
                 <div className="flex flex-wrap gap-4 mb-6">
                   <div className="flex-1 min-w-64">
                     <Label htmlFor="search">Search Students</Label>
@@ -635,7 +782,9 @@ export default function CESARecruitmentDashboard() {
                         id="search"
                         placeholder="Search by name, PRN, or email..."
                         value={searchTerm}
-                        onChange={(e: { target: { value: any } }) => setSearchTerm(e.target.value)}
+                        onChange={(e: { target: { value: any } }) =>
+                          setSearchTerm(e.target.value)
+                        }
                         className="pl-10"
                       />
                     </div>
@@ -644,7 +793,10 @@ export default function CESARecruitmentDashboard() {
                   {currentUser.role === "admin" && (
                     <div className="min-w-48">
                       <Label htmlFor="team-filter">Filter by Team</Label>
-                      <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+                      <Select
+                        value={selectedTeam}
+                        onValueChange={setSelectedTeam}
+                      >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -670,7 +822,9 @@ export default function CESARecruitmentDashboard() {
                         <SelectItem value="name">Name</SelectItem>
                         <SelectItem value="prn">PRN Number</SelectItem>
                         <SelectItem value="cgpa">CGPA</SelectItem>
-                        <SelectItem value="submission">Submission Time</SelectItem>
+                        <SelectItem value="submission">
+                          Submission Time
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -686,7 +840,10 @@ export default function CESARecruitmentDashboard() {
                     style={{ display: "flex", alignItems: "center" }}
                     onClick={() => {
                       if (tableScrollRef.current) {
-                        tableScrollRef.current.scrollBy({ left: -150, behavior: "smooth" })
+                        tableScrollRef.current.scrollBy({
+                          left: -150,
+                          behavior: "smooth",
+                        });
                       }
                     }}
                   >
@@ -699,7 +856,10 @@ export default function CESARecruitmentDashboard() {
                     style={{ display: "flex", alignItems: "center" }}
                     onClick={() => {
                       if (tableScrollRef.current) {
-                        tableScrollRef.current.scrollBy({ left: 150, behavior: "smooth" })
+                        tableScrollRef.current.scrollBy({
+                          left: 150,
+                          behavior: "smooth",
+                        });
                       }
                     }}
                   >
@@ -711,9 +871,9 @@ export default function CESARecruitmentDashboard() {
                     style={{ maxWidth: "100%" }}
                     onWheel={(e: React.WheelEvent<HTMLDivElement>) => {
                       if (e.ctrlKey) {
-                        e.preventDefault()
-                        const container = e.currentTarget
-                        container.scrollLeft += e.deltaY
+                        e.preventDefault();
+                        const container = e.currentTarget;
+                        container.scrollLeft += e.deltaY;
                       }
                     }}
                   >
@@ -741,9 +901,15 @@ export default function CESARecruitmentDashboard() {
                         <TableBody>
                           {students.map((student) => {
                             const evaluation = currentUser.teamId
-                              ? getStudentEvaluationForTeam(student.id, currentUser.teamId)
-                              : null
-
+                              ? getStudentEvaluationForTeam(
+                                  student.id,
+                                  currentUser.teamId
+                                )
+                              : null;
+                            const rounds = studentRounds[student.id] || {
+                              round1: false,
+                              round2: false,
+                            };
                             return (
                               <TableRow key={student.id}>
                                 <TableCell>
@@ -758,83 +924,161 @@ export default function CESARecruitmentDashboard() {
                                       <div className="font-medium">
                                         {student.firstName} {student.lastName}
                                       </div>
-                                      <div className="text-sm text-gray-500">{student.email}</div>
+                                      <div className="text-sm text-gray-500">
+                                        {student.email}
+                                      </div>
                                     </div>
                                   </div>
                                 </TableCell>
-                                <TableCell className="font-mono">{student.prnNumber}</TableCell>
+                                <TableCell className="font-mono">
+                                  {student.prnNumber}
+                                </TableCell>
                                 <TableCell>{student.division}</TableCell>
                                 <TableCell>
-                                  <Badge variant={Number.parseFloat(student.fyCgpa) >= 8 ? "default" : "secondary"}>
+                                  <Badge
+                                    variant={
+                                      Number.parseFloat(student.fyCgpa) >= 8
+                                        ? "default"
+                                        : "secondary"
+                                    }
+                                  >
                                     {student.fyCgpa}
                                   </Badge>
                                 </TableCell>
                                 <TableCell>
                                   <div className="flex flex-wrap gap-1">
-                                    {student.teamsApplied.slice(0, 2).map((teamId: any, index: any) => (
-                                      <Badge key={index} variant="outline" className="text-xs">
-                                        {teams.find((t: { id: any }) => t.id === teamId)?.name || teamId}
-                                      </Badge>
-                                    ))}
+                                    {student.teamsApplied
+                                      .slice(0, 2)
+                                      .map((teamId: any, index: any) => (
+                                        <Badge
+                                          key={index}
+                                          variant="outline"
+                                          className="text-xs"
+                                        >
+                                          {teams.find(
+                                            (t: { id: any }) => t.id === teamId
+                                          )?.name || teamId}
+                                        </Badge>
+                                      ))}
                                     {student.teamsApplied.length > 2 && (
-                                      <Badge variant="outline" className="text-xs">
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs"
+                                      >
                                         +{student.teamsApplied.length - 2}
                                       </Badge>
                                     )}
+                                  </div>
+                                </TableCell>
+                                {/* Round checkboxes for each student */}
+                                <TableCell>
+                                  <div className="flex flex-col gap-1">
+                                    <label className="flex items-center gap-2">
+                                      <input
+                                        type="checkbox"
+                                        checked={rounds.round1}
+                                        onChange={async () => {
+                                          const newValue = !rounds.round1;
+                                          setStudentRounds((prev) => ({
+                                            ...prev,
+                                            [student.id]: {
+                                              ...rounds,
+                                              round1: newValue,
+                                            },
+                                          }));
+                                          await updateRound(
+                                            student.id,
+                                            newValue,
+                                            rounds.round2
+                                          );
+                                        }}
+                                      />
+                                      <span className="text-xs">
+                                        Round 1 Complete
+                                      </span>
+                                    </label>
+                                    <label className="flex items-center gap-2">
+                                      <input
+                                        type="checkbox"
+                                        checked={rounds.round2}
+                                        onChange={async () => {
+                                          const newValue = !rounds.round2;
+                                          setStudentRounds((prev) => ({
+                                            ...prev,
+                                            [student.id]: {
+                                              ...rounds,
+                                              round2: newValue,
+                                            },
+                                          }));
+                                          await updateRound(
+                                            student.id,
+                                            rounds.round1,
+                                            newValue
+                                          );
+                                        }}
+                                      />
+                                      <span className="text-xs">
+                                        Round 2 Complete
+                                      </span>
+                                    </label>
                                   </div>
                                 </TableCell>
                                 {/* Show all evaluations for admin */}
                                 {currentUser.role === "admin" && (
                                   <TableCell>
                                     <div className="flex flex-col gap-1">
-                                      {student.teamsApplied.map((teamId: Key | null | undefined) => {
-                                        const team = teams.find((t: { id: any }) => t.id === teamId)
-                                        const evaln = evaluations.find(
-                                          (                                          e: { studentId: any; teamId: any }) => e.studentId === student.id && e.teamId === teamId
-                                        )
-                                        return (
-                                          <div key={teamId} className="flex items-center gap-2">
-                                            <Badge variant="secondary" className="text-xs">
-                                              {team?.name || teamId}
-                                            </Badge>
-                                            {evaln ? (
-                                              <Badge className="bg-green-100 text-green-800 text-xs">
-                                                Evaluated ({evaln.overall}/10)
+                                      {student.teamsApplied.map(
+                                        (teamId: Key | null | undefined) => {
+                                          const team = teams.find(
+                                            (t: { id: any }) => t.id === teamId
+                                          );
+                                          const evaln = evaluations.find(
+                                            (e: {
+                                              studentId: any;
+                                              teamId: any;
+                                            }) =>
+                                              e.studentId === student.id &&
+                                              e.teamId === teamId
+                                          );
+                                          return (
+                                            <div
+                                              key={teamId}
+                                              className="flex items-center gap-2"
+                                            >
+                                              <Badge
+                                                variant="secondary"
+                                                className="text-xs"
+                                              >
+                                                {team?.name || teamId}
                                               </Badge>
-                                            ) : (
-                                              <Badge variant="secondary" className="text-xs">
-                                                Pending
-                                              </Badge>
-                                            )}
-                                          </div>
-                                        )
-                                      })}
+                                              {evaln ? (
+                                                <Badge className="bg-green-100 text-green-800 text-xs">
+                                                  Evaluated ({evaln.overall}/10)
+                                                </Badge>
+                                              ) : (
+                                                <Badge
+                                                  variant="secondary"
+                                                  className="text-xs"
+                                                ></Badge>
+                                              )}
+                                            </div>
+                                          );
+                                        }
+                                      )}
                                     </div>
                                   </TableCell>
                                 )}
-                                {/* For panel, show only their own team status */}
-                                <TableCell>
-                                  {currentUser.role === "panel" && currentUser.teamId ? (
-                                    (() => {
-                                      const evaln = evaluations.find(
-                                        (                                        e: { studentId: any; teamId: any }) => e.studentId === student.id && e.teamId === currentUser.teamId
-                                      )
-                                      return evaln ? (
-                                        <Badge className="bg-green-100 text-green-800">
-                                          Evaluated ({evaln.overall}/10)
-                                        </Badge>
-                                      ) : (
-                                        <Badge variant="secondary">Pending</Badge>
-                                      )
-                                    })()
-                                  ) : (
-                                    <span className="text-xs text-gray-500">-</span>
-                                  )}
-                                </TableCell>
+                                
                                 {/* ...existing Actions cell... */}
                                 <TableCell>
                                   <div className="flex space-x-2">
-                                    <Button variant="outline" size="sm" onClick={() => setSelectedStudent(student)}>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() =>
+                                        setSelectedStudent(student)
+                                      }
+                                    >
                                       <Eye className="h-4 w-4" />
                                     </Button>
                                     {currentUser.role === "admin" && (
@@ -842,46 +1086,10 @@ export default function CESARecruitmentDashboard() {
                                         variant="outline"
                                         size="sm"
                                         onClick={() => {
-                                          setEditStudent({ ...student })
-                                          setIsEditStudentOpen(true)
-                                          setEditStudentError(null)
-                                          setEditStudentSuccess(null)
-                                        }}
-                                      >
-                                        <Edit className="h-4 w-4" />
-                                      </Button>
-                                    )}
-                                    {currentUser.role === "panel" && currentUser.teamId && (
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => {
-                                          setSelectedStudent(student)
-                                          const evaluation = evaluations.find(
-                                            (e: { studentId: any; teamId: any }) => e.studentId === student.id && e.teamId === currentUser.teamId
-                                          )
-                                          setCurrentMarks(
-                                            evaluation
-                                              ? {
-                                                  technical: evaluation.technical,
-                                                  communication: evaluation.communication,
-                                                  leadership: evaluation.leadership,
-                                                  problemSolving: evaluation.problemSolving,
-                                                  teamwork: evaluation.teamwork,
-                                                  overall: evaluation.overall,
-                                                  comments: evaluation.comments,
-                                                }
-                                              : {
-                                                  technical: 0,
-                                                  communication: 0,
-                                                  leadership: 0,
-                                                  problemSolving: 0,
-                                                  teamwork: 0,
-                                                  overall: 0,
-                                                  comments: "",
-                                                },
-                                          )
-                                          setIsMarkingDialogOpen(true)
+                                          setEditStudent({ ...student });
+                                          setIsEditStudentOpen(true);
+                                          setEditStudentError(null);
+                                          setEditStudentSuccess(null);
                                         }}
                                       >
                                         <Edit className="h-4 w-4" />
@@ -890,7 +1098,7 @@ export default function CESARecruitmentDashboard() {
                                   </div>
                                 </TableCell>
                               </TableRow>
-                            )
+                            );
                           })}
                         </TableBody>
                       </Table>
@@ -905,7 +1113,9 @@ export default function CESARecruitmentDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Applications</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Total Applications
+                  </CardTitle>
                   <FileText className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
@@ -915,7 +1125,9 @@ export default function CESARecruitmentDashboard() {
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Evaluated</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Evaluated
+                  </CardTitle>
                   <BarChart3 className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
@@ -925,15 +1137,21 @@ export default function CESARecruitmentDashboard() {
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Avg CGPA</CardTitle>
+                  <CardTitle className="text-sm font-medium">
+                    Avg CGPA
+                  </CardTitle>
                   <BarChart3 className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
                     {students.length > 0
                       ? (
-                        students.reduce((sum: number, s: { fyCgpa: any }) => sum + Number.parseFloat(s.fyCgpa || "0"), 0) / students.length
-                      ).toFixed(2)
+                          students.reduce(
+                            (sum: number, s: { fyCgpa: any }) =>
+                              sum + Number.parseFloat(s.fyCgpa || "0"),
+                            0
+                          ) / students.length
+                        ).toFixed(2)
                       : "0.00"}
                   </div>
                 </CardContent>
@@ -962,27 +1180,39 @@ export default function CESARecruitmentDashboard() {
                   <CardContent>
                     <div className="space-y-4">
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Max Students:</span>
+                        <span className="text-sm text-gray-600">
+                          Max Students:
+                        </span>
                         <span className="font-medium">{team.maxStudents}</span>
                       </div>
                       <div className="space-y-2">
-                        <h4 className="text-sm font-medium">Marking Criteria:</h4>
+                        <h4 className="text-sm font-medium">
+                          Marking Criteria:
+                        </h4>
                         <div className="space-y-1 text-xs">
                           <div className="flex justify-between">
                             <span>Technical:</span>
-                            <span>{team.markingCriteria.technical.weight}%</span>
+                            <span>
+                              {team.markingCriteria.technical.weight}%
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span>Communication:</span>
-                            <span>{team.markingCriteria.communication.weight}%</span>
+                            <span>
+                              {team.markingCriteria.communication.weight}%
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span>Leadership:</span>
-                            <span>{team.markingCriteria.leadership.weight}%</span>
+                            <span>
+                              {team.markingCriteria.leadership.weight}%
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span>Problem Solving:</span>
-                            <span>{team.markingCriteria.problemSolving.weight}%</span>
+                            <span>
+                              {team.markingCriteria.problemSolving.weight}%
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span>Teamwork:</span>
@@ -992,7 +1222,11 @@ export default function CESARecruitmentDashboard() {
                       </div>
                       {/* Admin Edit Criteria Button */}
                       {currentUser.role === "admin" && (
-                        <Button size="sm" variant="outline" onClick={() => openEditCriteria(team)}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openEditCriteria(team)}
+                        >
                           Edit Marking Criteria
                         </Button>
                       )}
@@ -1010,23 +1244,38 @@ export default function CESARecruitmentDashboard() {
                   <Download className="h-5 w-5" />
                   Export Reports
                 </CardTitle>
-                <CardDescription>Generate and download various reports for the recruitment process</CardDescription>
+                <CardDescription>
+                  Generate and download various reports for the recruitment
+                  process
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Button variant="outline" className="h-20 flex-col bg-transparent">
+                  <Button
+                    variant="outline"
+                    className="h-20 flex-col bg-transparent"
+                  >
                     <FileText className="h-6 w-6 mb-2" />
                     Student Applications Report
                   </Button>
-                  <Button variant="outline" className="h-20 flex-col bg-transparent">
+                  <Button
+                    variant="outline"
+                    className="h-20 flex-col bg-transparent"
+                  >
                     <BarChart3 className="h-6 w-6 mb-2" />
                     Evaluation Summary
                   </Button>
-                  <Button variant="outline" className="h-20 flex-col bg-transparent">
+                  <Button
+                    variant="outline"
+                    className="h-20 flex-col bg-transparent"
+                  >
                     <Users className="h-6 w-6 mb-2" />
                     Team-wise Analysis
                   </Button>
-                  <Button variant="outline" className="h-20 flex-col bg-transparent">
+                  <Button
+                    variant="outline"
+                    className="h-20 flex-col bg-transparent"
+                  >
                     <FileText className="h-6 w-6 mb-2" />
                     Final Selection List
                   </Button>
@@ -1038,14 +1287,18 @@ export default function CESARecruitmentDashboard() {
       </div>
 
       {/* Student Details Dialog */}
-      <Dialog open={!!selectedStudent && !isMarkingDialogOpen} onOpenChange={() => setSelectedStudent(null)}>
+      <Dialog
+        open={!!selectedStudent && !isMarkingDialogOpen}
+        onOpenChange={() => setSelectedStudent(null)}
+      >
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {selectedStudent?.firstName} {selectedStudent?.lastName}
             </DialogTitle>
             <DialogDescription>
-              PRN: {selectedStudent?.prnNumber} | Division: {selectedStudent?.division}
+              PRN: {selectedStudent?.prnNumber} | Division:{" "}
+              {selectedStudent?.division}
             </DialogDescription>
           </DialogHeader>
 
@@ -1055,19 +1308,27 @@ export default function CESARecruitmentDashboard() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-medium">Email</Label>
-                  <p className="text-sm text-gray-600 break-all">{selectedStudent.email}</p>
+                  <p className="text-sm text-gray-600 break-all">
+                    {selectedStudent.email}
+                  </p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium">WhatsApp</Label>
-                  <p className="text-sm text-gray-600 break-all">{selectedStudent.whatsappNumber}</p>
+                  <p className="text-sm text-gray-600 break-all">
+                    {selectedStudent.whatsappNumber}
+                  </p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium">FY CGPA</Label>
-                  <p className="text-sm text-gray-600">{selectedStudent.fyCgpa}</p>
+                  <p className="text-sm text-gray-600">
+                    {selectedStudent.fyCgpa}
+                  </p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium">FY Attendance</Label>
-                  <p className="text-sm text-gray-600">{selectedStudent.fyAttendance}</p>
+                  <p className="text-sm text-gray-600">
+                    {selectedStudent.fyAttendance}
+                  </p>
                 </div>
               </div>
 
@@ -1084,44 +1345,232 @@ export default function CESARecruitmentDashboard() {
 
               <div>
                 <Label className="text-sm font-medium">About Yourself</Label>
-                <p className="text-sm text-gray-600 mt-1">{selectedStudent.aboutYourself}</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  {selectedStudent.aboutYourself}
+                </p>
               </div>
 
               <div>
                 <Label className="text-sm font-medium">Accomplishment</Label>
-                <p className="text-sm text-gray-600 mt-1">{selectedStudent.accomplishment}</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  {selectedStudent.accomplishment}
+                </p>
               </div>
 
               {/* Show evaluations for this student */}
-              {evaluations.filter((evaluation: { studentId: any }) => evaluation.studentId === selectedStudent.id).length > 0 && (
+              {evaluations.filter(
+                (evaluation: { studentId: any }) =>
+                  evaluation.studentId === selectedStudent.id
+              ).length > 0 && (
                 <div>
-                  <Label className="text-sm font-medium">Evaluation Results</Label>
+                  <Label className="text-sm font-medium">
+                    Evaluation Results
+                  </Label>
                   <div className="mt-2 space-y-2">
                     {evaluations
-                      .filter((evaluation: { studentId: any }) => evaluation.studentId === selectedStudent.id)
-                      .map((evaluation: { teamId: any; _id: any; overall: any; technical: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; communication: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; leadership: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; problemSolving: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; teamwork: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; comments: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined }) => {
-                        const team = teams.find((t: { id: any }) => t.id === evaluation.teamId)
-                        return (
-                          <Card key={evaluation._id}>
-                            <CardContent className="pt-4">
-                              <div className="flex justify-between items-center mb-2">
-                                <h4 className="font-medium">{team?.name}</h4>
-                                <Badge className="bg-green-100 text-green-800">{evaluation.overall}/10</Badge>
-                              </div>
-                              <div className="grid grid-cols-5 gap-2 text-xs">
-                                <div>Tech: {evaluation.technical}</div>
-                                <div>Comm: {evaluation.communication}</div>
-                                <div>Lead: {evaluation.leadership}</div>
-                                <div>Problem: {evaluation.problemSolving}</div>
-                                <div>Team: {evaluation.teamwork}</div>
-                              </div>
-                              {evaluation.comments && (
-                                <p className="text-xs text-gray-600 mt-2">{evaluation.comments}</p>
-                              )}
-                            </CardContent>
-                          </Card>
-                        )
-                      })}
+                      .filter(
+                        (evaluation: { studentId: any }) =>
+                          evaluation.studentId === selectedStudent.id
+                      )
+                      .map(
+                        (evaluation: {
+                          teamId: any;
+                          _id: any;
+                          overall: any;
+                          technical:
+                            | string
+                            | number
+                            | bigint
+                            | boolean
+                            | ReactElement<
+                                unknown,
+                                string | JSXElementConstructor<any>
+                              >
+                            | Iterable<ReactNode>
+                            | ReactPortal
+                            | Promise<
+                                | string
+                                | number
+                                | bigint
+                                | boolean
+                                | ReactPortal
+                                | ReactElement<
+                                    unknown,
+                                    string | JSXElementConstructor<any>
+                                  >
+                                | Iterable<ReactNode>
+                                | null
+                                | undefined
+                              >
+                            | null
+                            | undefined;
+                          communication:
+                            | string
+                            | number
+                            | bigint
+                            | boolean
+                            | ReactElement<
+                                unknown,
+                                string | JSXElementConstructor<any>
+                              >
+                            | Iterable<ReactNode>
+                            | ReactPortal
+                            | Promise<
+                                | string
+                                | number
+                                | bigint
+                                | boolean
+                                | ReactPortal
+                                | ReactElement<
+                                    unknown,
+                                    string | JSXElementConstructor<any>
+                                  >
+                                | Iterable<ReactNode>
+                                | null
+                                | undefined
+                              >
+                            | null
+                            | undefined;
+                          leadership:
+                            | string
+                            | number
+                            | bigint
+                            | boolean
+                            | ReactElement<
+                                unknown,
+                                string | JSXElementConstructor<any>
+                              >
+                            | Iterable<ReactNode>
+                            | ReactPortal
+                            | Promise<
+                                | string
+                                | number
+                                | bigint
+                                | boolean
+                                | ReactPortal
+                                | ReactElement<
+                                    unknown,
+                                    string | JSXElementConstructor<any>
+                                  >
+                                | Iterable<ReactNode>
+                                | null
+                                | undefined
+                              >
+                            | null
+                            | undefined;
+                          problemSolving:
+                            | string
+                            | number
+                            | bigint
+                            | boolean
+                            | ReactElement<
+                                unknown,
+                                string | JSXElementConstructor<any>
+                              >
+                            | Iterable<ReactNode>
+                            | ReactPortal
+                            | Promise<
+                                | string
+                                | number
+                                | bigint
+                                | boolean
+                                | ReactPortal
+                                | ReactElement<
+                                    unknown,
+                                    string | JSXElementConstructor<any>
+                                  >
+                                | Iterable<ReactNode>
+                                | null
+                                | undefined
+                              >
+                            | null
+                            | undefined;
+                          teamwork:
+                            | string
+                            | number
+                            | bigint
+                            | boolean
+                            | ReactElement<
+                                unknown,
+                                string | JSXElementConstructor<any>
+                              >
+                            | Iterable<ReactNode>
+                            | ReactPortal
+                            | Promise<
+                                | string
+                                | number
+                                | bigint
+                                | boolean
+                                | ReactPortal
+                                | ReactElement<
+                                    unknown,
+                                    string | JSXElementConstructor<any>
+                                  >
+                                | Iterable<ReactNode>
+                                | null
+                                | undefined
+                              >
+                            | null
+                            | undefined;
+                          comments:
+                            | string
+                            | number
+                            | bigint
+                            | boolean
+                            | ReactElement<
+                                unknown,
+                                string | JSXElementConstructor<any>
+                              >
+                            | Iterable<ReactNode>
+                            | ReactPortal
+                            | Promise<
+                                | string
+                                | number
+                                | bigint
+                                | boolean
+                                | ReactPortal
+                                | ReactElement<
+                                    unknown,
+                                    string | JSXElementConstructor<any>
+                                  >
+                                | Iterable<ReactNode>
+                                | null
+                                | undefined
+                              >
+                            | null
+                            | undefined;
+                        }) => {
+                          const team = teams.find(
+                            (t: { id: any }) => t.id === evaluation.teamId
+                          );
+                          return (
+                            <Card key={evaluation._id}>
+                              <CardContent className="pt-4">
+                                <div className="flex justify-between items-center mb-2">
+                                  <h4 className="font-medium">{team?.name}</h4>
+                                  <Badge className="bg-green-100 text-green-800">
+                                    {evaluation.overall}/10
+                                  </Badge>
+                                </div>
+                                <div className="grid grid-cols-5 gap-2 text-xs">
+                                  <div>Tech: {evaluation.technical}</div>
+                                  <div>Comm: {evaluation.communication}</div>
+                                  <div>Lead: {evaluation.leadership}</div>
+                                  <div>
+                                    Problem: {evaluation.problemSolving}
+                                  </div>
+                                  <div>Team: {evaluation.teamwork}</div>
+                                </div>
+                                {evaluation.comments && (
+                                  <p className="text-xs text-gray-600 mt-2">
+                                    {evaluation.comments}
+                                  </p>
+                                )}
+                              </CardContent>
+                            </Card>
+                          );
+                        }
+                      )}
                   </div>
                 </div>
               )}
@@ -1130,35 +1579,47 @@ export default function CESARecruitmentDashboard() {
         </DialogContent>
       </Dialog>
 
-      {/* Marking Dialog */}
-      <Dialog open={isMarkingDialogOpen} onOpenChange={setIsMarkingDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              Evaluate {selectedStudent?.firstName} {selectedStudent?.lastName}
-            </DialogTitle>
-            <DialogDescription>
-              {currentUser?.role === "admin"
-                ? `${teams.find(t => t.id === selectedTeam)?.name || "Select a team using the filter above"} - Rate each criterion from 0-10`
-                : `${currentUser?.teamName} - Rate each criterion from 0-10`}
-            </DialogDescription>
-          </DialogHeader>
-
-          {selectedStudent && ((currentUser?.role === "panel" && currentUser?.teamId) || currentUser?.role === "admin") && (
-            <div className="space-y-4">
-              {Object.entries(teams.find((t: { id: any }) => t.id === currentUser.teamId)?.markingCriteria || {}).map(
-                ([criterion, config]) => (
+      {/* Marking Dialog - Only for Admin */}
+      {currentUser?.role === "admin" && (
+        <Dialog
+          open={isMarkingDialogOpen}
+          onOpenChange={setIsMarkingDialogOpen}
+        >
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                Evaluate {selectedStudent?.firstName}{" "}
+                {selectedStudent?.lastName}
+              </DialogTitle>
+              <DialogDescription>
+                {teams.find((t) => t.id === selectedTeam)?.name ||
+                  "Select a team using the filter above"}{" "}
+                - Rate each criterion from 0-10
+              </DialogDescription>
+            </DialogHeader>
+            {selectedStudent && (
+              <div className="space-y-4">
+                {Object.entries(
+                  teams.find((t: { id: any }) => t.id === selectedTeam)
+                    ?.markingCriteria || {}
+                ).map(([criterion, config]) => (
                   <div key={criterion} className="space-y-2">
                     <div className="flex justify-between">
-                      <Label className="capitalize">{criterion.replace(/([A-Z])/g, " $1")}</Label>
-                      <span className="text-sm text-gray-500">Weight: {config.weight}%</span>
+                      <Label className="capitalize">
+                        {criterion.replace(/([A-Z])/g, " $1")}
+                      </Label>
+                      <span className="text-sm text-gray-500">
+                        Weight: {config.weight}%
+                      </span>
                     </div>
                     <Input
                       type="number"
                       min="0"
                       max="10"
                       step="0.5"
-                      value={currentMarks[criterion as keyof TeamMarks] as number}
+                      value={
+                        currentMarks[criterion as keyof TeamMarks] as number
+                      }
                       onChange={(e: { target: { value: string } }) =>
                         setCurrentMarks((prev: any) => ({
                           ...prev,
@@ -1167,57 +1628,63 @@ export default function CESARecruitmentDashboard() {
                       }
                     />
                   </div>
-                ),
-              )}
-
-              <div className="space-y-2">
-                <Label>Comments</Label>
-                <Textarea
-                  placeholder="Add your evaluation comments..."
-                  value={currentMarks.comments}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                    setCurrentMarks((prev: TeamMarks) => ({
-                      ...prev,
-                      comments: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-
-              <div className="flex justify-between items-center pt-4 border-t">
-                <div>
-                  <span className="text-sm text-gray-600">Weighted Score: </span>
-                  <span className="font-bold">{calculateWeightedScore(currentMarks, currentUser.role === "admin" ? selectedTeam : currentUser.teamId as string)}/10</span>
+                ))}
+                <div className="space-y-2">
+                  <Label>Comments</Label>
+                  <Textarea
+                    placeholder="Add your evaluation comments..."
+                    value={currentMarks.comments}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                      setCurrentMarks((prev: TeamMarks) => ({
+                        ...prev,
+                        comments: e.target.value,
+                      }))
+                    }
+                  />
                 </div>
-                <div className="space-x-2">
-                  <Button variant="outline" onClick={() => setIsMarkingDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleMarkingSubmit} disabled={loading}>
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      "Save Evaluation"
-                    )}
-                  </Button>
+                <div className="flex justify-between items-center pt-4 border-t">
+                  <div>
+                    <span className="text-sm text-gray-600">
+                      Weighted Score:{" "}
+                    </span>
+                    <span className="font-bold">
+                      {calculateWeightedScore(currentMarks, selectedTeam)}/10
+                    </span>
+                  </div>
+                  <div className="space-x-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsMarkingDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button onClick={handleMarkingSubmit} disabled={loading}>
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        "Save Evaluation"
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Change Password Dialog */}
-      <Dialog open={isChangePasswordOpen} onOpenChange={setIsChangePasswordOpen}>
+      <Dialog
+        open={isChangePasswordOpen}
+        onOpenChange={setIsChangePasswordOpen}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Change Password</DialogTitle>
-            <DialogDescription>
-              Update your account password.
-            </DialogDescription>
+            <DialogDescription>Update your account password.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             {changePasswordError && (
@@ -1238,7 +1705,9 @@ export default function CESARecruitmentDashboard() {
                 id="old-password"
                 type="password"
                 value={oldPassword}
-                onChange={(e: { target: { value: any } }) => setOldPassword(e.target.value)}
+                onChange={(e: { target: { value: any } }) =>
+                  setOldPassword(e.target.value)
+                }
                 autoComplete="current-password"
               />
             </div>
@@ -1248,7 +1717,9 @@ export default function CESARecruitmentDashboard() {
                 id="new-password"
                 type="password"
                 value={newPassword}
-                onChange={(e: { target: { value: any } }) => setNewPassword(e.target.value)}
+                onChange={(e: { target: { value: any } }) =>
+                  setNewPassword(e.target.value)
+                }
                 autoComplete="new-password"
               />
             </div>
@@ -1258,7 +1729,9 @@ export default function CESARecruitmentDashboard() {
                 id="confirm-password"
                 type="password"
                 value={confirmPassword}
-                onChange={(e: { target: { value: any } }) => setConfirmPassword(e.target.value)}
+                onChange={(e: { target: { value: any } }) =>
+                  setConfirmPassword(e.target.value)
+                }
                 autoComplete="new-password"
               />
             </div>
@@ -1303,42 +1776,106 @@ export default function CESARecruitmentDashboard() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label>First Name</Label>
-                <Input value={newStudent.firstName} onChange={(e: { target: { value: any } }) => setNewStudent((s: any) => ({ ...s, firstName: e.target.value }))} />
+                <Input
+                  value={newStudent.firstName}
+                  onChange={(e: { target: { value: any } }) =>
+                    setNewStudent((s: any) => ({
+                      ...s,
+                      firstName: e.target.value,
+                    }))
+                  }
+                />
               </div>
               <div>
                 <Label>Last Name</Label>
-                <Input value={newStudent.lastName} onChange={(e: { target: { value: any } }) => setNewStudent((s: any) => ({ ...s, lastName: e.target.value }))} />
+                <Input
+                  value={newStudent.lastName}
+                  onChange={(e: { target: { value: any } }) =>
+                    setNewStudent((s: any) => ({
+                      ...s,
+                      lastName: e.target.value,
+                    }))
+                  }
+                />
               </div>
               <div>
                 <Label>Division</Label>
-                <Input value={newStudent.division} onChange={(e: { target: { value: any } }) => setNewStudent((s: any) => ({ ...s, division: e.target.value }))} />
+                <Input
+                  value={newStudent.division}
+                  onChange={(e: { target: { value: any } }) =>
+                    setNewStudent((s: any) => ({
+                      ...s,
+                      division: e.target.value,
+                    }))
+                  }
+                />
               </div>
               <div>
                 <Label>PRN Number</Label>
-                <Input value={newStudent.prnNumber} onChange={(e: { target: { value: any } }) => setNewStudent((s: any) => ({ ...s, prnNumber: e.target.value }))} />
+                <Input
+                  value={newStudent.prnNumber}
+                  onChange={(e: { target: { value: any } }) =>
+                    setNewStudent((s: any) => ({
+                      ...s,
+                      prnNumber: e.target.value,
+                    }))
+                  }
+                />
               </div>
               <div>
                 <Label>WhatsApp Number</Label>
-                <Input value={newStudent.whatsappNumber} onChange={(e: { target: { value: any } }) => setNewStudent((s: any) => ({ ...s, whatsappNumber: e.target.value }))} />
+                <Input
+                  value={newStudent.whatsappNumber}
+                  onChange={(e: { target: { value: any } }) =>
+                    setNewStudent((s: any) => ({
+                      ...s,
+                      whatsappNumber: e.target.value,
+                    }))
+                  }
+                />
               </div>
               <div>
                 <Label>Email</Label>
-                <Input value={newStudent.email} onChange={(e: { target: { value: any } }) => setNewStudent((s: any) => ({ ...s, email: e.target.value }))} />
+                <Input
+                  value={newStudent.email}
+                  onChange={(e: { target: { value: any } }) =>
+                    setNewStudent((s: any) => ({ ...s, email: e.target.value }))
+                  }
+                />
               </div>
               <div>
                 <Label>FY CGPA</Label>
-                <Input value={newStudent.fyCgpa} onChange={(e: { target: { value: any } }) => setNewStudent((s: any) => ({ ...s, fyCgpa: e.target.value }))} />
+                <Input
+                  value={newStudent.fyCgpa}
+                  onChange={(e: { target: { value: any } }) =>
+                    setNewStudent((s: any) => ({
+                      ...s,
+                      fyCgpa: e.target.value,
+                    }))
+                  }
+                />
               </div>
               <div>
                 <Label>FY Attendance</Label>
-                <Input value={newStudent.fyAttendance} onChange={(e: { target: { value: any } }) => setNewStudent((s: any) => ({ ...s, fyAttendance: e.target.value }))} />
+                <Input
+                  value={newStudent.fyAttendance}
+                  onChange={(e: { target: { value: any } }) =>
+                    setNewStudent((s: any) => ({
+                      ...s,
+                      fyAttendance: e.target.value,
+                    }))
+                  }
+                />
               </div>
               <div className="col-span-2">
                 <Label>Teams Applied (max 3)</Label>
                 <div className="border rounded px-2 py-1">
                   <div className="flex flex-wrap gap-2">
                     {teams.map((team) => (
-                      <label key={team.id} className="flex items-center gap-1 text-sm cursor-pointer select-none">
+                      <label
+                        key={team.id}
+                        className="flex items-center gap-1 text-sm cursor-pointer select-none"
+                      >
                         <input
                           type="checkbox"
                           checked={newStudent.teamsApplied.includes(team.id)}
@@ -1347,13 +1884,16 @@ export default function CESARecruitmentDashboard() {
                             !newStudent.teamsApplied.includes(team.id)
                           }
                           onChange={() => {
-                            let updated = [...newStudent.teamsApplied]
+                            let updated = [...newStudent.teamsApplied];
                             if (updated.includes(team.id)) {
-                              updated = updated.filter(t => t !== team.id)
+                              updated = updated.filter((t) => t !== team.id);
                             } else if (updated.length < 3) {
-                              updated.push(team.id)
+                              updated.push(team.id);
                             }
-                            setNewStudent((s: any) => ({ ...s, teamsApplied: updated }))
+                            setNewStudent((s: any) => ({
+                              ...s,
+                              teamsApplied: updated,
+                            }));
                           }}
                         />
                         {team.name}
@@ -1361,19 +1901,36 @@ export default function CESARecruitmentDashboard() {
                     ))}
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
-                    Selected: {newStudent.teamsApplied.map((id: any) => teams.find((t: { id: any }) => t.id === id)?.name).filter(Boolean).join(", ")}
+                    Selected:{" "}
+                    {newStudent.teamsApplied
+                      .map(
+                        (id: any) =>
+                          teams.find((t: { id: any }) => t.id === id)?.name
+                      )
+                      .filter(Boolean)
+                      .join(", ")}
                   </div>
                 </div>
               </div>
               <div className="col-span-2">
                 <Label>Accomplishment</Label>
-                <Textarea value={newStudent.accomplishment} onChange={(e: { target: { value: any } }) => setNewStudent((s: any) => ({ ...s, accomplishment: e.target.value }))} />
+                <Textarea
+                  value={newStudent.accomplishment}
+                  onChange={(e: { target: { value: any } }) =>
+                    setNewStudent((s: any) => ({
+                      ...s,
+                      accomplishment: e.target.value,
+                    }))
+                  }
+                />
               </div>
             </div>
           </div>
           <DialogFooter>
             <Button onClick={handleAddStudent} disabled={addStudentLoading}>
-              {addStudentLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {addStudentLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
               Add Student
             </Button>
           </DialogFooter>
@@ -1403,42 +1960,101 @@ export default function CESARecruitmentDashboard() {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <Label>First Name</Label>
-                  <Input value={editStudent.firstName} onChange={e => setEditStudent(s => s ? { ...s, firstName: e.target.value } : s)} />
+                  <Input
+                    value={editStudent.firstName}
+                    onChange={(e) =>
+                      setEditStudent((s) =>
+                        s ? { ...s, firstName: e.target.value } : s
+                      )
+                    }
+                  />
                 </div>
                 <div>
                   <Label>Last Name</Label>
-                  <Input value={editStudent.lastName} onChange={e => setEditStudent(s => s ? { ...s, lastName: e.target.value } : s)} />
+                  <Input
+                    value={editStudent.lastName}
+                    onChange={(e) =>
+                      setEditStudent((s) =>
+                        s ? { ...s, lastName: e.target.value } : s
+                      )
+                    }
+                  />
                 </div>
                 <div>
                   <Label>Division</Label>
-                  <Input value={editStudent.division} onChange={e => setEditStudent(s => s ? { ...s, division: e.target.value } : s)} />
+                  <Input
+                    value={editStudent.division}
+                    onChange={(e) =>
+                      setEditStudent((s) =>
+                        s ? { ...s, division: e.target.value } : s
+                      )
+                    }
+                  />
                 </div>
                 <div>
                   <Label>PRN Number</Label>
-                  <Input value={editStudent.prnNumber} onChange={e => setEditStudent(s => s ? { ...s, prnNumber: e.target.value } : s)} />
+                  <Input
+                    value={editStudent.prnNumber}
+                    onChange={(e) =>
+                      setEditStudent((s) =>
+                        s ? { ...s, prnNumber: e.target.value } : s
+                      )
+                    }
+                  />
                 </div>
                 <div>
                   <Label>WhatsApp Number</Label>
-                  <Input value={editStudent.whatsappNumber} onChange={e => setEditStudent(s => s ? { ...s, whatsappNumber: e.target.value } : s)} />
+                  <Input
+                    value={editStudent.whatsappNumber}
+                    onChange={(e) =>
+                      setEditStudent((s) =>
+                        s ? { ...s, whatsappNumber: e.target.value } : s
+                      )
+                    }
+                  />
                 </div>
                 <div>
                   <Label>Email</Label>
-                  <Input value={editStudent.email} onChange={e => setEditStudent(s => s ? { ...s, email: e.target.value } : s)} />
+                  <Input
+                    value={editStudent.email}
+                    onChange={(e) =>
+                      setEditStudent((s) =>
+                        s ? { ...s, email: e.target.value } : s
+                      )
+                    }
+                  />
                 </div>
                 <div>
                   <Label>FY CGPA</Label>
-                  <Input value={editStudent.fyCgpa} onChange={e => setEditStudent(s => s ? { ...s, fyCgpa: e.target.value } : s)} />
+                  <Input
+                    value={editStudent.fyCgpa}
+                    onChange={(e) =>
+                      setEditStudent((s) =>
+                        s ? { ...s, fyCgpa: e.target.value } : s
+                      )
+                    }
+                  />
                 </div>
                 <div>
                   <Label>FY Attendance</Label>
-                  <Input value={editStudent.fyAttendance} onChange={e => setEditStudent(s => s ? { ...s, fyAttendance: e.target.value } : s)} />
+                  <Input
+                    value={editStudent.fyAttendance}
+                    onChange={(e) =>
+                      setEditStudent((s) =>
+                        s ? { ...s, fyAttendance: e.target.value } : s
+                      )
+                    }
+                  />
                 </div>
                 <div className="col-span-2">
                   <Label>Teams Applied (max 3)</Label>
                   <div className="border rounded px-2 py-1">
                     <div className="flex flex-wrap gap-2">
                       {teams.map((team) => (
-                        <label key={team.id} className="flex items-center gap-1 text-sm cursor-pointer select-none">
+                        <label
+                          key={team.id}
+                          className="flex items-center gap-1 text-sm cursor-pointer select-none"
+                        >
                           <input
                             type="checkbox"
                             checked={editStudent.teamsApplied.includes(team.id)}
@@ -1447,13 +2063,15 @@ export default function CESARecruitmentDashboard() {
                               !editStudent.teamsApplied.includes(team.id)
                             }
                             onChange={() => {
-                              let updated = [...editStudent.teamsApplied]
+                              let updated = [...editStudent.teamsApplied];
                               if (updated.includes(team.id)) {
-                                updated = updated.filter(t => t !== team.id)
+                                updated = updated.filter((t) => t !== team.id);
                               } else if (updated.length < 3) {
-                                updated.push(team.id)
+                                updated.push(team.id);
                               }
-                              setEditStudent(s => s ? { ...s, teamsApplied: updated } : s)
+                              setEditStudent((s) =>
+                                s ? { ...s, teamsApplied: updated } : s
+                              );
                             }}
                           />
                           {team.name}
@@ -1461,29 +2079,55 @@ export default function CESARecruitmentDashboard() {
                       ))}
                     </div>
                     <div className="text-xs text-gray-500 mt-1">
-                      Selected: {editStudent.teamsApplied.map((id: any) => teams.find((t: { id: any }) => t.id === id)?.name).filter(Boolean).join(", ")}
+                      Selected:{" "}
+                      {editStudent.teamsApplied
+                        .map(
+                          (id: any) =>
+                            teams.find((t: { id: any }) => t.id === id)?.name
+                        )
+                        .filter(Boolean)
+                        .join(", ")}
                     </div>
                   </div>
                 </div>
                 <div className="col-span-2">
                   <Label>Accomplishment</Label>
-                  <Textarea value={editStudent.accomplishment} onChange={e => setEditStudent(s => s ? { ...s, accomplishment: e.target.value } : s)} />
+                  <Textarea
+                    value={editStudent.accomplishment}
+                    onChange={(e) =>
+                      setEditStudent((s) =>
+                        s ? { ...s, accomplishment: e.target.value } : s
+                      )
+                    }
+                  />
                 </div>
                 <div className="col-span-2">
                   <Label>About Yourself</Label>
-                  <Textarea value={editStudent.aboutYourself} onChange={e => setEditStudent(s => s ? { ...s, aboutYourself: e.target.value } : s)} />
+                  <Textarea
+                    value={editStudent.aboutYourself}
+                    onChange={(e) =>
+                      setEditStudent((s) =>
+                        s ? { ...s, aboutYourself: e.target.value } : s
+                      )
+                    }
+                  />
                 </div>
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button onClick={handleEditStudentSave} disabled={editStudentLoading}>
-              {editStudentLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            <Button
+              onClick={handleEditStudentSave}
+              disabled={editStudentLoading}
+            >
+              {editStudentLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
               Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }
