@@ -9,15 +9,10 @@ export async function POST(req: NextRequest) {
         const db = await getDatabase();
         const collection = db.collection("webSubmissions");
 
+        // console.log(body);
         // Check for existing PRN
-        const existing = await collection.findOne({
-            $or: [
-                { prn: body.prn },
-                { prnNumber: body.prn },
-                { prn: body.prnNumber },
-                { prnNumber: body.prnNumber }
-            ]
-        });
+        const existing = await collection.findOne({prn:body.formData.prn});
+        // console.log(existing)
         if (existing) {
             return NextResponse.json({ status: 409, error: "Submission already exists for this PRN." });
         }
