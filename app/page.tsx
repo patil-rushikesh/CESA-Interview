@@ -241,9 +241,9 @@ export default function CESARecruitmentDashboard() {
       setLoading(true);
       const params = new URLSearchParams();
       if (currentUser?.role === "panel" && currentUser.teamId) {
-        params.append("teamId", currentUser.teamId);
+          params.append("teamId", currentUser.teamId);
       } else if (selectedTeam !== "all") {
-        params.append("teamId", selectedTeam);
+          params.append("teamId", selectedTeam);
       }
       if (searchTerm) params.append("search", searchTerm);
       if (sortBy) params.append("sortBy", sortBy);
@@ -252,7 +252,27 @@ export default function CESARecruitmentDashboard() {
       const data = await response.json();
 
       if (response.ok) {
-        setStudents(data.students);
+          let sortedStudents = data.students;
+          if (sortBy === "division") {
+            sortedStudents = [...data.students].sort((a, b) => {
+              if (a.division < b.division) return -1;
+              if (a.division > b.division) return 1;
+              const nameA = (a.firstName + " " + a.lastName).toLowerCase();
+              const nameB = (b.firstName + " " + b.lastName).toLowerCase();
+              if (nameA < nameB) return -1;
+              if (nameA > nameB) return 1;
+              return 0;
+            });
+          } else if (sortBy === "name") {
+            sortedStudents = [...data.students].sort((a, b) => {
+              const nameA = (a.firstName + " " + a.lastName).toLowerCase();
+              const nameB = (b.firstName + " " + b.lastName).toLowerCase();
+              if (nameA < nameB) return -1;
+              if (nameA > nameB) return 1;
+              return 0;
+            });
+          }
+          setStudents(sortedStudents);
         // Map round status from DB to studentRounds state
         const roundsMap: Record<string, { round1: boolean; round2: boolean }> =
           {};
@@ -820,6 +840,7 @@ export default function CESARecruitmentDashboard() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="name">Name</SelectItem>
+                        <SelectItem value="division">Division</SelectItem>
                         <SelectItem value="prn">PRN Number</SelectItem>
                         <SelectItem value="cgpa">CGPA</SelectItem>
                         <SelectItem value="submission">
